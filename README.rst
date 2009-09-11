@@ -93,3 +93,4 @@ template uses these to produce separate symmetric and nonsymmetric kernels:
     cuda_matrix[nxi*nx + nyj] = cuda_matrix[nyj*nx + nxi];
     }   {{ endif }}
     }"""
+If ``symm`` is true, the stuff between the if blocks is kept; otherwise it's thrown out.

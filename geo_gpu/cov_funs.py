@@ -102,11 +102,7 @@ __global__ void f({{dtype}} *cuda_matrix, int nx, int ny)
         """Leaves the generated matrix on the GPU, returns a PyCuda wrapper."""
 
         # Compile module if necessary
-        param_tup = tuple([params[k] for k in self.params])
-        if self.modules.has_key(param_tup):
-            mod = self.modules[param_tup][dtype][symm]
-        else:
-            mod = self.compile_with_parameters(*param_tup)[dtype][symm]
+        mod = self.compile_with_parameters(**params)[dtype][symm]
 
         matrixBlocksx = nx/self.blocksize
         matrixBlocksy = ny/self.blocksize

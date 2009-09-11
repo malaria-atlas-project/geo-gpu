@@ -99,7 +99,7 @@ __global__ void f({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, in
         matrix_gpu.free()
         
         return matrix_cpu.reshape(nx,ny)
-        
+    
     def gpu_call(self,x,y,symm=False,dtype=None,matrix_gpu=None,**params):
         """Leaves the generated matrix on the GPU, returns a PyCuda wrapper."""
 
@@ -110,13 +110,8 @@ __global__ void f({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, in
             dtype = x.dtype
 
         # Compile module if necessary
-        param_tup = tuple([params[k] for k in self.params])
-        if self.modules.has_key(param_tup):
-            mod = self.modules[param_tup][dtype][symm]
-        else:
-            mod = self.compile_with_parameters(*param_tup)[dtype][symm]
+        mod = self.compile_with_parameters(**params)[dtype][symm]
 
-        # (body, x, y, nx, ny, ndx, ndy, cmin, cmax, symm, dtype=numpy.dtype('float64'), blocksize=16):
         nx = x.shape[0]
         ny = y.shape[0]
         ndx = x.shape[1]

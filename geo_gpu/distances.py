@@ -15,6 +15,7 @@
 
 import pycuda.driver as cuda
 import pycuda.autoinit
+import pymc as pm
 import numpy
 import warnings
 import sys
@@ -22,40 +23,100 @@ from common import *
 from template import *
 import re
 
-__all__ = ['cuda_distance','euclidean']
+__all__ = ['CudaDistance','euclidean','dumb']
 
-class cuda_distance(object):
+# dist_generic has tokens:
+#   - preamble, body, funcname : specialize to particular function
+#   - dtype, blocksize : specialize further
+
+
+class CudaDistance(CudaMatrixFiller):
+    """
+    Wraps a CUDA distance function. Compiles it on-the-fly as needed.
     
-    def __init__(self, body, blocksize):
-        self.source = templ_subs(dist_generic, funcname=body['name'], preamble=body['preamble'], body=body['body'], blocksize=blocksize)
-        self.params = body['params']
-        self.sources = {}
-        self.modules = {}
+    - Initialization: c = cuda_distance('euclidean', blocksize=16)
+        Doesn't compile anything, but generates source templates for float and double,
+        both symmetric and unsymmetric versions.
         
-        for dtype in [numpy.dtype('float64'), numpy.dtype('float32')]:
-            self.sources[dtype] = {}
-            for symm in [True, False]:
-                self.sources[dtype][symm] = templ_subs(self.source, symm=symm, dtype=dtype_names[dtype])
+    - Calling: a = c(x,y,symm=False,dtype=numpy.dtype('float32'),**params)
+        If 'params' is new (ie c has not yet been called with this set of parameters),
+        then a new version of c is compiled. The parameters are 'compiled in' as
+        constants.
         
-    def compile_with_parameters(self, *params):
-        """Generates and compiles a CUDA module with a new set of parameters."""
-        param_dict = dict(zip(self.params, params))
-        self.modules[params] = {}
-        for dtype in [numpy.dtype('float64'), numpy.dtype('float32')]:
-            self.modules[params][dtype] = {}
-            for symm in [True, False]:
-                self.modules[params][dtype][symm] = cuda.SourceModule(templ_subs(self.sources[dtype][symm], **param_dict))
-                
-        return self.modules[params]
-                
-    def __call__(x,y,symm=False,dtype=numpy.dtype('float32'),**params):
+        If 'params' has been seen before, the compiled module is retrieved from a
+        cache.
+        
+        Either way, the compiled module is called and the result is copied to a
+        NumPy array and returned.
+        
+    - On-GPU calling: a = gpu_call()
+        Just like __call__, but the matrix is left alive on the GPU and is not
+        copied into a numpy array. The on-GPU matrix is returned as an opaque
+        object.
+    """
+    
+    generic = """
+#define BLOCKSIZE {{blocksize}}
+
+{{preamble}}
+
+__device__ {{dtype}} {{funcname}}({{dtype}} *x, {{dtype}} *y, int nxi, int nyj, int ndx)
+{
+{{body}}
+}
+__global__ void f({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, int ndx)
+{
+    {{ if symm }}if(blockIdx.x >= blockIdx.y){ {{ endif }}
+    int nxi = blockIdx.x * blockDim.x + threadIdx.x;
+    int nyj = blockIdx.y * blockDim.y + threadIdx.y;
+    {{dtype}} d_xi_yj = {{funcname}}(x,y,nxi,nyj,ndx);
+    __syncthreads;
+    cuda_matrix[nyj*nx + nxi] = d_xi_yj;{{ if symm }}
+    cuda_matrix[nxi*nx + nyj] = d_xi_yj;
+} {{ endif }}
+}
+    """
+        
+    def __call__(self,x,y,symm=False,**params):
+        """
+        Deallocates all memory used on the GPU, returns result as NumPy matrix.
+        The dtype of the return value will match that of the first argument,
+        so be sure x.dtype is the dtype you want!
+        """
+
+        if x.dtype != y.dtype:
+            raise ValueError, "Dtypes of arguments do not match. Sorry to be anal, but it's for your own good."
+
+        dtype=x.dtype
+        
+        x = pm.gp.regularize_array(x).astype(x.dtype)
+        y = pm.gp.regularize_array(y).astype(y.dtype)
+
+        nx = x.shape[0]
+        ny = y.shape[0]
+        
+        matrix_gpu = self.gpu_call(x,y,symm,dtype)
+        matrix_cpu = numpy.empty((nx,ny),dtype=dtype,order='F')
+        cuda.memcpy_dtoh(matrix_cpu, matrix_gpu)
+        matrix_gpu.free()
+        
+        return matrix_cpu.reshape(nx,ny)
+        
+    def gpu_call(self,x,y,symm=False,dtype=None,matrix_gpu=None,**params):
+        """Leaves the generated matrix on the GPU, returns a PyCuda wrapper."""
+
+        if dtype:
+            x=x.astype(dtype)
+            y=y.astype(dtype)
+        else:
+            dtype = x.dtype
 
         # Compile module if necessary
         param_tup = tuple([params[k] for k in self.params])
         if self.modules.has_key(param_tup):
-            mod = self.modules[param_tup]
+            mod = self.modules[param_tup][dtype][symm]
         else:
-            mod = self.compile_with_parameters(param_tup)
+            mod = self.compile_with_parameters(param_tup)[dtype][symm]
 
         # (body, x, y, nx, ny, ndx, ndy, cmin, cmax, symm, dtype=numpy.dtype('float64'), blocksize=16):
         nx = x.shape[0]
@@ -63,15 +124,16 @@ class cuda_distance(object):
         ndx = x.shape[1]
         ndy = ndx
 
-        matrixBlocks = nx/blocksize
+        matrixBlocks = nx/self.blocksize
 
         #Load cuda function
-        cuda_fct = mod.get_function("fillMatrix_euclidean_symmetric_full")
+        cuda_fct = mod.get_function("f")
 
         #Allocate arrays on device
         x_gpu = cuda.mem_alloc(nx*ndx*dtype.itemsize)
-        y_gpu = cuda.mem_alloc(nx*ndx*dtype.itemsize)
-        matrix_gpu = cuda.mem_alloc(nx*nx*dtype.itemsize)
+        y_gpu = cuda.mem_alloc(ny*ndy*dtype.itemsize)
+        if matrix_gpu is None:
+            matrix_gpu = cuda.mem_alloc(nx*ny*dtype.itemsize)
 
         #Copy memory from host to device
         cuda.memcpy_htod(x_gpu, x)
@@ -82,7 +144,7 @@ class cuda_distance(object):
         ndx = numpy.uint32(ndx)
 
         #Execute cuda function
-        cuda_fct(matrix_gpu, x_gpu, y_gpu, nx, ndx, block=(blocksize,blocksize,1), grid=(matrixBlocks,matrixBlocks))
+        cuda_fct(matrix_gpu, x_gpu, y_gpu, nx, ndx, block=(self.blocksize,self.blocksize,1), grid=(matrixBlocks,matrixBlocks))
 
         #Free memory on gpu
         x_gpu.free()
@@ -91,6 +153,9 @@ class cuda_distance(object):
         #return matrix_gpu
         return matrix_gpu
 
+dumb = {'name': 'dumb','preamble': '','body': """
+    return ({{dtype}}) 1.0;
+""", 'params':()}
 
 euclidean = {'name': 'euclidean','preamble': '','body': """
     {{dtype}} d = 0;

@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from geo_gpu import *
+import pymc as pm
 
 def maintest():
 
@@ -50,4 +51,26 @@ def maintest():
 
 if __name__ == "__main__":
     # maintest()
-    c =cuda_distance(euclidean, 16)
+    nbx = 400
+    blocksize=16
+    nby = 600
+    
+    d='float32'
+    # d='float'
+    x = np.arange(blocksize*nbx,dtype=d)
+    y = np.arange(blocksize*nby,dtype=d)    
+    d=np.empty((x.shape[0],y.shape[0]),order='F')
+    
+    c = CudaDistance(euclidean, blocksize)
+    c.compile_with_parameters()
+    
+    a=c(x,x,symm=True)
+
+    import time
+    t1=time.time()
+    b=c(x,y,symm=False)
+    t2=time.time()
+    pm.gp.distances.euclidean(d,x,y)
+    t3=time.time()
+    
+    print 'GPU time: %f, CPU time: %f'%(t2-t1,t3-t2)

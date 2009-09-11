@@ -2,6 +2,13 @@ import re
 
 end_token = re.compile('{{\s*endif\s*}}')
 
+def add_line_numbers(s):
+    l = s.splitlines()
+    ln = []
+    for i in xrange(len(l)):
+        ln.append('%i\t%s'%(i+2,l[i]))
+    return '\n'.join(ln)
+
 def next_match(t, s, e):
     m_start = s.search(t)
     if m_start:

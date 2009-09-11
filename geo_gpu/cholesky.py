@@ -18,8 +18,6 @@ import pycuda.autoinit
 import numpy
 import warnings
 import sys
-from jinja2 import Template
-from numpy import *
 
 # Choleksy decomposition of matrixA which is already on gpu.
 def cuda_d_choleskyDecomposition(matrixA_gpu, matrixA_size):

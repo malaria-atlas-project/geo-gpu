@@ -13,13 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import pycuda.driver as cuda
-import pycuda.autoinit
-import numpy
-import warnings
-import sys
-from jinja2 import Template
-from numpy import *
+from geo_gpu import *
 
 def maintest():
 
@@ -55,4 +49,5 @@ def maintest():
 
 
 if __name__ == "__main__":
-    maintest()
+    # maintest()
+    c =cuda_distance(euclidean, 16)

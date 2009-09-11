@@ -18,8 +18,6 @@ import pycuda.autoinit
 import numpy
 import warnings
 import sys
-from jinja2 import Template
-from numpy import *
 
 def cuda_d_matern(matrixC_gpu, nx, ny, cmin, cmax, symm, diff_degree):
 

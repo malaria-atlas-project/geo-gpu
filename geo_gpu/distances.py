@@ -40,7 +40,7 @@ class cuda_distance(object):
     def compile_with_parameters(self, *params):
         """Generates and compiles a CUDA module with a new set of parameters."""
         param_dict = dict(zip(self.params, params))
-        self.modules[params] = []
+        self.modules[params] = {}
         for dtype in [numpy.dtype('float64'), numpy.dtype('float32')]:
             self.modules[params][dtype] = {}
             for symm in [True, False]:
@@ -99,5 +99,5 @@ euclidean = {'name': 'euclidean','preamble': '','body': """
         {{dtype}} dev = x[nxi+i] - y[nyj+i];
           d += dev*dev;
     }
-    return sqrt(d)
+    return sqrt(d);
 """, 'params':()}

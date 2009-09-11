@@ -35,36 +35,34 @@ class CudaMatrixFiller(object):
         self.source = templ_subs(self.generic, funcname=body['name'], preamble=body['preamble'], body=body['body'], blocksize=blocksize)
         self.params = body['params']
         self.sources = {}
-        self.modules = {}
+        self.modules = {np.dtype('float32'): {}, np.dtype('float64'): {}}
         
         for dtype in [np.dtype('float64'), np.dtype('float32')]:
             self.sources[dtype] = {}
             for symm in [True, False]:
                 self.sources[dtype][symm] = templ_subs(self.source, symm=symm, dtype=dtype_names[dtype])
         
-    def compile_with_parameters(self, **params):
+    def compile_with_parameters(self, dtype, **params):
         """
         Generates and compiles a CUDA module with a new set of parameters.
         If a kernel for the given parameters already exists, does nothing.
         """
         param_tup = tuple([params[k] for k in self.params])
 
-        if not self.modules.has_key(param_tup):
-            self.modules[param_tup] = {}
-            for dtype in [np.dtype('float64'), np.dtype('float32')]:
-                self.modules[param_tup][dtype] = {}
-                for symm in [True, False]:
-                    try:
-                        s = templ_subs(self.sources[dtype][symm], **params)
-                        self.modules[param_tup][dtype][symm] = cuda.SourceModule(s)
-                    except CompileError:
-                        cls, inst, tb = sys.exc_info()
-                        new_msg = """ Failed to compile %s with dtype %s, symm=%s. Module source follows. 
+        if not self.modules[dtype].has_key(param_tup):
+            self.modules[dtype][param_tup] = {}
+            for symm in [True, False]:
+                try:
+                    s = templ_subs(self.sources[dtype][symm], **params)
+                    self.modules[dtype][param_tup][symm] = cuda.SourceModule(s)
+                except CompileError:
+                    cls, inst, tb = sys.exc_info()
+                    new_msg = """ Failed to compile %s with dtype %s, symm=%s. Module source follows. 
 NVCC's error message should be above the traceback.
 
 %s 
 
 Original error message from PyCuda: %s"""%(self.name, dtype, symm, add_line_numbers(s), inst.message)
-                        raise cls, cls(new_msg), tb
+                    raise cls, cls(new_msg), tb
                 
-        return self.modules[param_tup]
+        return self.modules[dtype][param_tup]

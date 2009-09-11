@@ -110,7 +110,7 @@ __global__ void f({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, in
             dtype = x.dtype
 
         # Compile module if necessary
-        mod = self.compile_with_parameters(**params)[dtype][symm]
+        mod = self.compile_with_parameters(dtype,**params)[symm]
 
         nx = x.shape[0]
         ny = y.shape[0]

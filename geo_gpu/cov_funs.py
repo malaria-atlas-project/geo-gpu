@@ -72,8 +72,7 @@ __global__ void f({{dtype}} *cuda_matrix, int nx, int ny)
     {{if symm }}
     cuda_matrix[nxi*nx + nyj] = cuda_matrix[nyj*nx + nxi];
 }   {{ endif }}
-}
-    """
+}"""
         
     def __call__(self,d,symm=False,**params):
         """
@@ -103,7 +102,7 @@ __global__ void f({{dtype}} *cuda_matrix, int nx, int ny)
         """Leaves the generated matrix on the GPU, returns a PyCuda wrapper."""
 
         # Compile module if necessary
-        mod = self.compile_with_parameters(**params)[dtype][symm]
+        mod = self.compile_with_parameters(dtype, **params)[symm]
 
         matrixBlocksx = nx/self.blocksize
         matrixBlocksy = ny/self.blocksize

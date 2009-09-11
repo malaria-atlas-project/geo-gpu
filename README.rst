@@ -4,6 +4,7 @@ Usage so far
 The following code generates a distance matrix, overwrites it with a covariance
 matrix and Cholesky factors that matrix.
 ::
+
     nbx = 40
     blocksize=16
     nby = 60
@@ -41,6 +42,7 @@ Extending
 
 You can make a new distance like so:
 ::
+
     euclidean = {'name': 'euclidean',
     'preamble': "",
     'params':(),
@@ -56,6 +58,7 @@ You can make a new distance like so:
 
 or a new covariance function like so:
 ::
+
     exponential = {'name': 'exponential', 
     'preamble': "", 
     'params':('amp','scale'),
@@ -71,6 +74,7 @@ also use the template parameter ``{{dtype}}``.
 The body code can also contain 'if' statements. The 'generic' covariance function 
 template uses these to produce separate symmetric and nonsymmetric kernels:
 ::
+
     generic = """
     #define BLOCKSIZE {{blocksize}}
 
@@ -93,4 +97,5 @@ template uses these to produce separate symmetric and nonsymmetric kernels:
     cuda_matrix[nxi*nx + nyj] = cuda_matrix[nyj*nx + nxi];
     }   {{ endif }}
     }"""
+    
 If ``symm`` is true, the stuff between the if blocks is kept; otherwise it's thrown out.

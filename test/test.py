@@ -16,50 +16,16 @@
 from geo_gpu import *
 import pymc as pm
 
-def maintest():
-
-    ##############################################################################
-    # EUCLIDEAN, BESSEL ,CHOLESKY
-    ##############################################################################
-
-    nx = 16 #Matrix dimension
-    ny = nx
-    ndx = 3 #Position vector dimension (x,y,z) = 3
-    ndy = ndx
-    x_cpu = numpy.ones(nx*ndx,numpy.float64)
-    y_cpu = numpy.zeros(ny*ndy,numpy.float64)
-
-    # Calculate distance matrix on gpu -> returns "pointer" of gpu matrix
-    matrixD_gpu = cuda_d_euclidean(x_cpu, y_cpu, nx, ny, ndx, ndy, 0, nx, True)
-
-    # Use distance matrix which has been calculated before as an input for your bessel fct.
-    diff_degree = 1.1
-    matrixD_gpu = cuda_d_matern(matrixD_gpu, nx, ny, 0, nx, True, diff_degree)
-
-    # Finally carry out the matrix decomposition for the K(D(x_i,y_j)) matrix
-    cuda_d_choleskyDecomposition(matrixD_gpu, nx)
-
-    # Copy result from device to host and print it
-    matrixK_cpu = numpy.ones(nx*nx,numpy.float64)
-    cuda.memcpy_dtoh(matrixK_cpu, matrixD_gpu)
-    numpy.set_printoptions(threshold=nan) 
-    print matrixK_cpu
-
-
-    sys.exit()
-
-
-if __name__ == "__main__":
-    # maintest()
-    nbx = 400
+def disttest():
+    nbx = 40
     blocksize=16
-    nby = 600
+    nby = 60
     
     d='float32'
     # d='float'
     x = np.arange(blocksize*nbx,dtype=d)
     y = np.arange(blocksize*nby,dtype=d)    
-    d=np.empty((x.shape[0],y.shape[0]),order='F')
+    D=np.empty((x.shape[0],y.shape[0]),order='F')
     
     c = CudaDistance(euclidean, blocksize)
     c.compile_with_parameters()
@@ -70,7 +36,28 @@ if __name__ == "__main__":
     t1=time.time()
     b=c(x,y,symm=False)
     t2=time.time()
-    pm.gp.distances.euclidean(d,x,y)
+    pm.gp.distances.euclidean(D,x,y)
     t3=time.time()
     
     print 'GPU time: %f, CPU time: %f'%(t2-t1,t3-t2)
+
+if __name__ == "__main__":
+    nbx = 40
+    blocksize=16
+    nby = 60
+    
+    d='float32'
+    # d='float'
+    x = np.arange(blocksize*nbx,dtype=d)
+    y = np.arange(blocksize*nby,dtype=d)    
+    
+    D = CudaDistance(euclidean, blocksize)
+    D.compile_with_parameters()
+    
+    Ds=D(x,x,symm=True)
+    Dns=D(x,y,symm=False)
+
+    C = CudaRawCovariance(exponential, blocksize)
+    
+    Cs = C(Ds, amp=2., scale=10., symm=True)
+    Cns = C(Dns, amp=2., scale=10., symm=False)

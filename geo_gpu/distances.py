@@ -25,11 +25,6 @@ import re
 
 __all__ = ['CudaDistance','euclidean','dumb']
 
-# dist_generic has tokens:
-#   - preamble, body, funcname : specialize to particular function
-#   - dtype, blocksize : specialize further
-
-
 class CudaDistance(CudaMatrixFiller):
     """
     Wraps a CUDA distance function. Compiles it on-the-fly as needed.
@@ -49,12 +44,12 @@ class CudaDistance(CudaMatrixFiller):
         Either way, the compiled module is called and the result is copied to a
         NumPy array and returned.
         
-    - On-GPU calling: a = gpu_call()
+    - On-GPU calling: a = c.gpu_call(...)
         Just like __call__, but the matrix is left alive on the GPU and is not
         copied into a numpy array. The on-GPU matrix is returned as an opaque
         object.
     """
-    
+    generic_tokens = ['preamble','body','funcname','blocksize','dtype']
     generic = """
 #define BLOCKSIZE {{blocksize}}
 
@@ -66,14 +61,17 @@ __device__ {{dtype}} {{funcname}}({{dtype}} *x, {{dtype}} *y, int nxi, int nyj, 
 }
 __global__ void f({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, int ndx)
 {
-    {{ if symm }}if(blockIdx.x >= blockIdx.y){ {{ endif }}
+    {{ if symm }}
+    if(blockIdx.x >= blockIdx.y){ 
+    {{ endif }}
     int nxi = blockIdx.x * blockDim.x + threadIdx.x;
     int nyj = blockIdx.y * blockDim.y + threadIdx.y;
     {{dtype}} d_xi_yj = {{funcname}}(x,y,nxi,nyj,ndx);
     __syncthreads;
-    cuda_matrix[nyj*nx + nxi] = d_xi_yj;{{ if symm }}
+    cuda_matrix[nyj*nx + nxi] = d_xi_yj;
+    {{ if symm }}
     cuda_matrix[nxi*nx + nyj] = d_xi_yj;
-} {{ endif }}
+}   {{ endif }}
 }
     """
         
@@ -95,7 +93,7 @@ __global__ void f({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, in
         nx = x.shape[0]
         ny = y.shape[0]
         
-        matrix_gpu = self.gpu_call(x,y,symm,dtype)
+        matrix_gpu = self.gpu_call(x,y,symm,dtype,**params)
         matrix_cpu = numpy.empty((nx,ny),dtype=dtype,order='F')
         cuda.memcpy_dtoh(matrix_cpu, matrix_gpu)
         matrix_gpu.free()
@@ -116,7 +114,7 @@ __global__ void f({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, in
         if self.modules.has_key(param_tup):
             mod = self.modules[param_tup][dtype][symm]
         else:
-            mod = self.compile_with_parameters(param_tup)[dtype][symm]
+            mod = self.compile_with_parameters(*param_tup)[dtype][symm]
 
         # (body, x, y, nx, ny, ndx, ndy, cmin, cmax, symm, dtype=numpy.dtype('float64'), blocksize=16):
         nx = x.shape[0]
@@ -124,7 +122,8 @@ __global__ void f({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, in
         ndx = x.shape[1]
         ndy = ndx
 
-        matrixBlocks = nx/self.blocksize
+        matrixBlocksx = nx/self.blocksize
+        matrixBlocksy = ny/self.blocksize        
 
         #Load cuda function
         cuda_fct = mod.get_function("f")
@@ -144,7 +143,7 @@ __global__ void f({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, in
         ndx = numpy.uint32(ndx)
 
         #Execute cuda function
-        cuda_fct(matrix_gpu, x_gpu, y_gpu, nx, ndx, block=(self.blocksize,self.blocksize,1), grid=(matrixBlocks,matrixBlocks))
+        cuda_fct(matrix_gpu, x_gpu, y_gpu, nx, ndx, block=(self.blocksize,self.blocksize,1), grid=(matrixBlocksx,matrixBlocksy))
 
         #Free memory on gpu
         x_gpu.free()
@@ -153,11 +152,13 @@ __global__ void f({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, in
         #return matrix_gpu
         return matrix_gpu
 
-dumb = {'name': 'dumb','preamble': '','body': """
+dumb = {'name': 'dumb','preamble': '','params':(),
+'body': """
     return ({{dtype}}) 1.0;
-""", 'params':()}
+"""}
 
-euclidean = {'name': 'euclidean','preamble': '','body': """
+euclidean = {'name': 'euclidean','preamble': "",'params':(),
+'body': """
     {{dtype}} d = 0;
     for(int i = 0; i < ndx; i++)
     {
@@ -165,4 +166,4 @@ euclidean = {'name': 'euclidean','preamble': '','body': """
           d += dev*dev;
     }
     return sqrt(d);
-""", 'params':()}
+"""}

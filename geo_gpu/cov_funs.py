@@ -85,6 +85,7 @@ __global__ void f({{dtype}} *cuda_matrix, int nx, int ny)
         """
 
         dtype=d.dtype
+        d = np.asarray(d,order='F')
         
         nx = d.shape[0]
         ny = d.shape[1]
@@ -98,7 +99,7 @@ __global__ void f({{dtype}} *cuda_matrix, int nx, int ny)
         
         return matrix_cpu.reshape(nx,ny)
         
-    def gpu_call(self,matrix_gpu,nx,ny,dtype,symm=False,**params):
+    def gpu_call(self,d_gpu,nx,ny,dtype,symm=False,**params):
         """Leaves the generated matrix on the GPU, returns a PyCuda wrapper."""
 
         # Compile module if necessary
@@ -115,22 +116,23 @@ __global__ void f({{dtype}} *cuda_matrix, int nx, int ny)
         ny = numpy.uint32(ny)
 
         #Execute cuda function
-        cuda_fct(matrix_gpu, nx, ny, block=(self.blocksize,self.blocksize,1), grid=(matrixBlocksx,matrixBlocksy))
+        cuda_fct(d_gpu, nx, ny, block=(self.blocksize,self.blocksize,1), grid=(matrixBlocksx,matrixBlocksy))
 
         #return matrix_gpu
-        return matrix_gpu
+        return d_gpu
 
 exponential = {'name': 'exponential', 'preamble': "", 'params':('amp','scale'),
 'body': """
 d[0]=exp(-abs(d[0])/{{scale}})*{{amp}}*{{amp}};
 """}
 
+gaussian = {'name': 'gaussian', 'preamble': "", 'params':('amp','scale'),
+'body': """
+d[0]=exp(-d[0]*d[0]/{{scale}}/{{scale}})*{{amp}}*{{amp}};
+"""}
 
 
-
-
-
-# FIXME: templatize Matern!
+# TODO: templatize Matern!
 
 # def cuda_d_matern(matrixC_gpu, nx, ny, cmin, cmax, symm, diff_degree):
 # 

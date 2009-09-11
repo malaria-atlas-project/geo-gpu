@@ -43,8 +43,10 @@ class CudaMatrixFiller(object):
                 self.sources[dtype][symm] = templ_subs(self.source, symm=symm, dtype=dtype_names[dtype])
         
     def compile_with_parameters(self, **params):
-        """Generates and compiles a CUDA module with a new set of parameters."""
-        
+        """
+        Generates and compiles a CUDA module with a new set of parameters.
+        If a kernel for the given parameters already exists, does nothing.
+        """
         param_tup = tuple([params[k] for k in self.params])
 
         if not self.modules.has_key(param_tup):

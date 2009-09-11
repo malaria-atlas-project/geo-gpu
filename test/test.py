@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from geo_gpu import *
+import geo_gpu
 import pymc as pm
 
 def disttest():
@@ -52,7 +53,6 @@ if __name__ == "__main__":
     y = np.arange(blocksize*nby,dtype=d)    
     
     D = CudaDistance(euclidean, blocksize)
-    D.compile_with_parameters()
     
     Ds=D(x,x,symm=True)
     Dns=D(x,y,symm=False)
@@ -61,3 +61,5 @@ if __name__ == "__main__":
     
     Cs = C(Ds, amp=2., scale=10., symm=True)
     Cns = C(Dns, amp=2., scale=10., symm=False)
+    
+    S = geo_gpu.cholesky(Cs)

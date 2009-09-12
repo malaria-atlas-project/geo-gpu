@@ -29,12 +29,12 @@ class CudaMatrixFiller(object):
     Base class for distance and covariance functions.
     """
     generic = None
-    def __init__(self, body, dtype, blocksize, **params):
+    def __init__(self, cuda_code, dtype, blocksize, **params):
         self.blocksize = blocksize
-        self.__dict__.update(body)
+        self.__dict__.update(cuda_code)
         self.dtype = np.dtype(dtype)
         
-        s = templ_subs(self.generic, preamble=body['preamble'], body=body['body'])
+        s = templ_subs(self.generic, preamble=cuda_code['preamble'], body=cuda_code['body'])
 
         self.source = templ_subs(s, blocksize=blocksize, dtype=dtype_names[self.dtype], **params)
         self.sources = {}

@@ -36,7 +36,7 @@ class CudaMatrixFiller(object):
         
         s = templ_subs(self.generic, funcname=body['name'], preamble=body['preamble'], body=body['body'])
 
-        self.source = templ_subs(s, blocksize=blocksize, dtype=dtype_names[dtype], **params)
+        self.source = templ_subs(s, blocksize=blocksize, dtype=dtype_names[self.dtype], **params)
         self.sources = {}
         self.modules = {}
 
@@ -51,5 +51,5 @@ NVCC's error message should be above the traceback.
 
 %s 
 
-Original error message from PyCuda: %s"""%(self.name, dtype, symm, add_line_numbers(s), inst.message)
+Original error message from PyCuda: %s"""%(self.name, self.dtype, symm, add_line_numbers(s), inst.message)
                 raise cls, cls(new_msg), tb

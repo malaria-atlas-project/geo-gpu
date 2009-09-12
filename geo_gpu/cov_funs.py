@@ -26,7 +26,7 @@ class CudaRawCovariance(CudaMatrixFiller):
     """
     Wraps a CUDA covariance function. Compiles it on-the-fly as needed.
     
-    - Initialization: c = CudaRawCovariance('exponential', dtype, blocksize, **params)
+    - Initialization: c = CudaRawCovariance(exponential, dtype, blocksize, **params)
         Compiles symmetric and unsymmetric versions of the generic kernel
         (CudaRawCovariance.generic) with the given body, dtype, blocksize and
         parameter values. Everything is compiled in as a constant

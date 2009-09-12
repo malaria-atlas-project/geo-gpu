@@ -29,7 +29,7 @@ class CudaDistance(CudaMatrixFiller):
     """
     Wraps a CUDA distance function. Compiles it on-the-fly as needed.
     
-    - Initialization: c = CudaDistance('euclidean', dtype, blocksize, **params)
+    - Initialization: c = CudaDistance(euclidean, dtype, blocksize, **params)
         Compiles symmetric and unsymmetric versions of the generic kernel
         (CudaDistance.generic) with the given body, dtype, blocksize and
         parameter values. Everything is compiled in as a constant

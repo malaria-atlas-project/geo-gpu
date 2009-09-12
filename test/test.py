@@ -52,12 +52,12 @@ if __name__ == "__main__":
     x = np.arange(blocksize*nbx,dtype=d)
     y = np.arange(blocksize*nby,dtype=d)    
     
-    D = CudaDistance(euclidean, np.dtype(d), blocksize)
+    D = CudaDistance(euclidean, d, blocksize)
     
     Ds=D(x,x,symm=True)
     Dns=D(x,y,symm=False)
 
-    C = CudaRawCovariance(exponential, np.dtype(d), blocksize, amp=2., scale=10.)
+    C = CudaRawCovariance(exponential, d, blocksize, amp=2., scale=10.)
     
     Cs = C(Ds, symm=True)
     Cns = C(Dns, symm=False)

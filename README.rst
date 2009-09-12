@@ -12,11 +12,13 @@ matrix and Cholesky factors that matrix.
     blocksize=16
     nby = 60
     
+    d = 'float32'
+    
     x = np.arange(blocksize*nbx,dtype=d)
     y = np.arange(blocksize*nby,dtype=d)
     
-    D = gg.CudaDistance(gg.euclidean, np.dtype(d), blocksize)
-    C = gg.CudaRawCovariance(gg.exponential, np.dtype(d), blocksize, amp=2., scale=10.)
+    D = gg.CudaDistance(gg.euclidean, d, blocksize)
+    C = gg.CudaRawCovariance(gg.exponential, d, blocksize, amp=2., scale=10.)
     
     D_eval = D(x,x,symm=True)
     C_eval = C(D_eval, symm=True)

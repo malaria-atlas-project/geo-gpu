@@ -32,7 +32,7 @@ class CudaMatrixFiller(object):
     def __init__(self, body, dtype, blocksize, **params):
         self.blocksize = blocksize
         self.__dict__.update(body)
-        self.dtype = dtype
+        self.dtype = np.dtype(dtype)
         
         s = templ_subs(self.generic, funcname=body['name'], preamble=body['preamble'], body=body['body'])
 

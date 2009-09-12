@@ -63,17 +63,44 @@ or a new covariance function like so:
 
     exponential = {'preamble': "", 
     'params':('amp','scale'),
-    'body': """
-    d[0]=exp(-abs(d[0])/{{scale}})*{{amp}}*{{amp}};
-    """}
+    'body': "   d[0]=exp(-abs(d[0])/{{scale}})*{{amp}}*{{amp}};"}
 
 ``Params`` is a list of the name of the special parameters ``exponential`` takes, 
 and ``body`` is a code snippet describing how to fill in a single element. The
 body code may contain the parameters enclosed in double curly braces, and can
 also use the template parameter ``{{dtype}}``.
 
-The body code can also contain 'if' statements. The 'generic' covariance function 
+The body code can also contain 'if' statements. The distance function 
 template uses these to produce separate symmetric and nonsymmetric kernels:
+::
+
+    generic = """
+    #define BLOCKSIZE {{blocksize}}
+
+    {{preamble}}
+
+    __device__ {{dtype}} compute_element__({{dtype}} *x, {{dtype}} *y, int nxi, int nyj, int ndx)
+    {
+    {{body}}
+    }
+    __global__ void compute_matrix__({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, int ndx)
+    {
+    {{ if symm }}
+    if(blockIdx.x >= blockIdx.y){ 
+        {{ endif }}
+        int nxi = blockIdx.x * blockDim.x + threadIdx.x;
+        int nyj = blockIdx.y * blockDim.y + threadIdx.y;
+        {{dtype}} d_xi_yj = compute_element__(x,y,nxi,nyj,ndx);
+        __syncthreads;
+        cuda_matrix[nyj*nx + nxi] = d_xi_yj;
+        {{ if symm }}
+        cuda_matrix[nxi*nx + nyj] = d_xi_yj;
+        }   {{ endif }}
+    }
+    """
+
+and likewise the covariance function template:
+
 ::
 
     generic = """

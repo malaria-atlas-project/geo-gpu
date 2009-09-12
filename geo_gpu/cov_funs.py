@@ -46,22 +46,22 @@ class CudaRawCovariance(CudaMatrixFiller):
 
 {{preamble}}
 
-__device__ void {{funcname}}({{dtype}} *d)
+__device__ void compute_element__({{dtype}} *d)
 {
 {{body}}
 }
-__global__ void f({{dtype}} *cuda_matrix, int nx, int ny)
+__global__ void compute_matrix__({{dtype}} *cuda_matrix, int nx, int ny)
 {
     {{ if symm }}
     if(blockIdx.x >= blockIdx.y){ 
-    {{ endif }}
-    int nxi = blockIdx.x * blockDim.x + threadIdx.x;
-    int nyj = blockIdx.y * blockDim.y + threadIdx.y;
-    {{funcname}}(cuda_matrix + nyj*nx + nxi);
-    __syncthreads;
-    {{if symm }}
-    cuda_matrix[nxi*nx + nyj] = cuda_matrix[nyj*nx + nxi];
-}   {{ endif }}
+        {{ endif }}
+        int nxi = blockIdx.x * blockDim.x + threadIdx.x;
+        int nyj = blockIdx.y * blockDim.y + threadIdx.y;
+        compute_element__(cuda_matrix + nyj*nx + nxi);
+        __syncthreads;
+        {{if symm }}
+        cuda_matrix[nxi*nx + nyj] = cuda_matrix[nyj*nx + nxi];
+    }   {{ endif }}
 }"""
         
     def __call__(self,d,symm=False):
@@ -92,7 +92,7 @@ __global__ void f({{dtype}} *cuda_matrix, int nx, int ny)
         nby = ny/self.blocksize
 
         #Load cuda function
-        cuda_fct = mod.get_function("f")
+        cuda_fct = mod.get_function("compute_matrix__")
 
         #Convert input parameters
         nx = numpy.uint32(nx)
@@ -104,12 +104,12 @@ __global__ void f({{dtype}} *cuda_matrix, int nx, int ny)
         #return matrix_gpu
         return c_gpu
 
-exponential = {'name': 'exponential', 'preamble': "", 'params':('amp','scale'),
+exponential = {'preamble': "", 'params':('amp','scale'),
 'body': """
 d[0]=exp(-abs(d[0])/{{scale}})*{{amp}}*{{amp}};
 """}
 
-gaussian = {'name': 'gaussian', 'preamble': "", 'params':('amp','scale'),
+gaussian = {'preamble': "", 'params':('amp','scale'),
 'body': """
 d[0]=exp(-d[0]*d[0]/{{scale}}/{{scale}})*{{amp}}*{{amp}};
 """}

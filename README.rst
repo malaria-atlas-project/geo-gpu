@@ -46,8 +46,7 @@ Extending
 You can make a new distance like so:
 ::
 
-    euclidean = {'name': 'euclidean',
-    'preamble': "",
+    euclidean = {'preamble': "",
     'params':(),
     'body': """
         {{dtype}} d = 0;
@@ -62,8 +61,7 @@ You can make a new distance like so:
 or a new covariance function like so:
 ::
 
-    exponential = {'name': 'exponential', 
-    'preamble': "", 
+    exponential = {'preamble': "", 
     'params':('amp','scale'),
     'body': """
     d[0]=exp(-abs(d[0])/{{scale}})*{{amp}}*{{amp}};
@@ -83,22 +81,22 @@ template uses these to produce separate symmetric and nonsymmetric kernels:
 
     {{preamble}}
 
-    __device__ void {{funcname}}({{dtype}} *d)
+    __device__ void compute_element__({{dtype}} *d)
     {
     {{body}}
     }
-    __global__ void f({{dtype}} *cuda_matrix, int nx, int ny)
+    __global__ void compute_matrix__({{dtype}} *cuda_matrix, int nx, int ny)
     {
-    {{ if symm }}
-    if(blockIdx.x >= blockIdx.y){ 
-    {{ endif }}
-    int nxi = blockIdx.x * blockDim.x + threadIdx.x;
-    int nyj = blockIdx.y * blockDim.y + threadIdx.y;
-    {{funcname}}(cuda_matrix + nyj*nx + nxi);
-    __syncthreads;
-    {{if symm }}
-    cuda_matrix[nxi*nx + nyj] = cuda_matrix[nyj*nx + nxi];
-    }   {{ endif }}
+        {{ if symm }}
+        if(blockIdx.x >= blockIdx.y){ 
+        {{ endif }}
+            int nxi = blockIdx.x * blockDim.x + threadIdx.x;
+            int nyj = blockIdx.y * blockDim.y + threadIdx.y;
+            compute_element__(cuda_matrix + nyj*nx + nxi);
+            __syncthreads;
+            {{if symm }}
+            cuda_matrix[nxi*nx + nyj] = cuda_matrix[nyj*nx + nxi];
+        }   {{ endif }}
     }"""
     
 If ``symm`` is true, the stuff between the if blocks is kept; otherwise it's thrown out.

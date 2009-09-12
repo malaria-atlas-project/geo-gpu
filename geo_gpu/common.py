@@ -34,7 +34,7 @@ class CudaMatrixFiller(object):
         self.__dict__.update(body)
         self.dtype = np.dtype(dtype)
         
-        s = templ_subs(self.generic, funcname=body['name'], preamble=body['preamble'], body=body['body'])
+        s = templ_subs(self.generic, preamble=body['preamble'], body=body['body'])
 
         self.source = templ_subs(s, blocksize=blocksize, dtype=dtype_names[self.dtype], **params)
         self.sources = {}

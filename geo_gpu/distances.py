@@ -49,23 +49,23 @@ class CudaDistance(CudaMatrixFiller):
 
 {{preamble}}
 
-__device__ {{dtype}} {{funcname}}({{dtype}} *x, {{dtype}} *y, int nxi, int nyj, int ndx)
+__device__ {{dtype}} compute_element__({{dtype}} *x, {{dtype}} *y, int nxi, int nyj, int ndx)
 {
 {{body}}
 }
-__global__ void f({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, int ndx)
+__global__ void compute_matrix__({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, int ndx)
 {
     {{ if symm }}
     if(blockIdx.x >= blockIdx.y){ 
-    {{ endif }}
-    int nxi = blockIdx.x * blockDim.x + threadIdx.x;
-    int nyj = blockIdx.y * blockDim.y + threadIdx.y;
-    {{dtype}} d_xi_yj = {{funcname}}(x,y,nxi,nyj,ndx);
-    __syncthreads;
-    cuda_matrix[nyj*nx + nxi] = d_xi_yj;
-    {{ if symm }}
-    cuda_matrix[nxi*nx + nyj] = d_xi_yj;
-}   {{ endif }}
+        {{ endif }}
+        int nxi = blockIdx.x * blockDim.x + threadIdx.x;
+        int nyj = blockIdx.y * blockDim.y + threadIdx.y;
+        {{dtype}} d_xi_yj = compute_element__(x,y,nxi,nyj,ndx);
+        __syncthreads;
+        cuda_matrix[nyj*nx + nxi] = d_xi_yj;
+        {{ if symm }}
+        cuda_matrix[nxi*nx + nyj] = d_xi_yj;
+    }   {{ endif }}
 }
     """
         
@@ -103,7 +103,7 @@ __global__ void f({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, in
         matrixBlocksy = ny/self.blocksize        
 
         #Load cuda function
-        cuda_fct = mod.get_function("f")
+        cuda_fct = mod.get_function("compute_matrix__")
 
         #Allocate arrays on device
         x_gpu = cuda.mem_alloc(nx*ndx*self.dtype.itemsize)
@@ -129,12 +129,12 @@ __global__ void f({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, in
         #return matrix_gpu
         return d_gpu
 
-dumb = {'name': 'dumb','preamble': '','params':(),
+dumb = {'preamble': '','params':(),
 'body': """
     return ({{dtype}}) 1.0;
 """}
 
-euclidean = {'name': 'euclidean','preamble': "",'params':(),
+euclidean = {'preamble': "",'params':(),
 'body': """
     {{dtype}} d = 0;
     for(int i = 0; i < ndx; i++)

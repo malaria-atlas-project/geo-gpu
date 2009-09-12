@@ -52,14 +52,14 @@ if __name__ == "__main__":
     x = np.arange(blocksize*nbx,dtype=d)
     y = np.arange(blocksize*nby,dtype=d)    
     
-    D = CudaDistance(euclidean, blocksize)
+    D = CudaDistance(euclidean, np.dtype(d), blocksize)
     
     Ds=D(x,x,symm=True)
     Dns=D(x,y,symm=False)
 
-    C = CudaRawCovariance(exponential, blocksize)
+    C = CudaRawCovariance(exponential, np.dtype(d), blocksize, amp=2., scale=10.)
     
-    Cs = C(Ds, amp=2., scale=10., symm=True)
-    Cns = C(Dns, amp=2., scale=10., symm=False)
+    Cs = C(Ds, symm=True)
+    Cns = C(Dns, symm=False)
     
     S = geo_gpu.cholesky(Cs)

@@ -29,40 +29,27 @@ class CudaMatrixFiller(object):
     Base class for distance and covariance functions.
     """
     generic = None
-    def __init__(self, body, blocksize):
+    def __init__(self, body, dtype, blocksize, **params):
         self.blocksize = blocksize
-        self.name = body['name']
-        self.source = templ_subs(self.generic, funcname=body['name'], preamble=body['preamble'], body=body['body'], blocksize=blocksize)
-        self.params = body['params']
-        self.sources = {}
-        self.modules = {np.dtype('float32'): {}, np.dtype('float64'): {}}
+        self.__dict__.update(body)
+        self.dtype = dtype
         
-        for dtype in [np.dtype('float64'), np.dtype('float32')]:
-            self.sources[dtype] = {}
-            for symm in [True, False]:
-                self.sources[dtype][symm] = templ_subs(self.source, symm=symm, dtype=dtype_names[dtype])
-        
-    def compile_with_parameters(self, dtype, **params):
-        """
-        Generates and compiles a CUDA module with a new set of parameters.
-        If a kernel for the given parameters already exists, does nothing.
-        """
-        param_tup = tuple([params[k] for k in self.params])
+        s = templ_subs(self.generic, funcname=body['name'], preamble=body['preamble'], body=body['body'])
 
-        if not self.modules[dtype].has_key(param_tup):
-            self.modules[dtype][param_tup] = {}
-            for symm in [True, False]:
-                try:
-                    s = templ_subs(self.sources[dtype][symm], **params)
-                    self.modules[dtype][param_tup][symm] = cuda.SourceModule(s)
-                except CompileError:
-                    cls, inst, tb = sys.exc_info()
-                    new_msg = """ Failed to compile %s with dtype %s, symm=%s. Module source follows. 
+        self.source = templ_subs(s, blocksize=blocksize, dtype=dtype_names[dtype], **params)
+        self.sources = {}
+        self.modules = {}
+
+        for symm in [True, False]:
+            try:
+                self.sources[symm] = templ_subs(self.source, symm=symm)
+                self.modules[symm] = cuda.SourceModule(self.sources[symm])
+            except CompileError:
+                cls, inst, tb = sys.exc_info()
+                new_msg = """ Failed to compile %s with dtype %s, symm=%s. Module source follows. 
 NVCC's error message should be above the traceback.
 
 %s 
 
 Original error message from PyCuda: %s"""%(self.name, dtype, symm, add_line_numbers(s), inst.message)
-                    raise cls, cls(new_msg), tb
-                
-        return self.modules[dtype][param_tup]
+                raise cls, cls(new_msg), tb

@@ -26,29 +26,19 @@ class CudaRawCovariance(CudaMatrixFiller):
     """
     Wraps a CUDA covariance function. Compiles it on-the-fly as needed.
     
-    - Initialization: c = cuda_covariance('exponential', blocksize=16)
-        Doesn't compile anything, but generates source templates for float and double,
-        both symmetric and unsymmetric versions.
+    - Initialization: c = CudaRawCovariance('exponential', dtype, blocksize, **params)
+        Compiles symmetric and unsymmetric versions of the generic kernel
+        (CudaRawCovariance.generic) with the given body, dtype, blocksize and
+        parameter values. Everything is compiled in as a constant
         
-    - Calling: a = c(d,symm=False,**params)
-        d is a NumPy distance array.
-    
-        If 'params' is new (ie c has not yet been called with this set of parameters),
-        then a new version of c is compiled. The parameters are 'compiled in' as
-        constants.
-        
-        If 'params' has been seen before, the compiled module is retrieved from a
-        cache.
-        
-        Either way, the compiled module is called and the result is copied to a
-        NumPy array and returned.
-        
-    - On-GPU calling: a = c.gpu_call(d,nx,ny,dtype,...)
+    - Calling: a = c(d,symm=False)
+        The appropriate GPU kernel is called and the result is copied to a
+        NumPy array and returned. Here 'd' is a matrix of distances.
+
+    - On-GPU calling: a = c.gpu_call(...)
         Just like __call__, but the matrix is left alive on the GPU and is not
         copied into a numpy array. The on-GPU matrix is returned as an opaque
         object.
-        
-        In this case, d must be an on-gpu distance array. dtype MUST match d.
     """
 
     generic = """
@@ -74,38 +64,32 @@ __global__ void f({{dtype}} *cuda_matrix, int nx, int ny)
 }   {{ endif }}
 }"""
         
-    def __call__(self,d,symm=False,**params):
+    def __call__(self,d,symm=False):
         """
         Deallocates all memory used on the GPU, returns result as NumPy matrix.
-        The dtype of the return value will match that of the first argument,
-        so be sure d.dtype is the dtype you want!
-        
-        NOTE: d will be overwritten in-place if feasible.
         """
 
-        dtype=d.dtype
-        d = np.asarray(d,order='F')
+        c_cpu = np.array(d,dtype=self.dtype,order='F')
         
-        nx = d.shape[0]
-        ny = d.shape[1]
+        nx = c_cpu.shape[0]
+        ny = c_cpu.shape[1]
         
-        d_gpu = cuda.mem_alloc(nx*ny*dtype.itemsize)
-        cuda.memcpy_htod(d_gpu, d)
-        self.gpu_call(d_gpu,nx,ny,dtype,symm,**params)
-        matrix_cpu = numpy.asarray(d,dtype=dtype,order='F')
-        cuda.memcpy_dtoh(matrix_cpu, d_gpu)
-        d_gpu.free()
+        c_gpu = cuda.mem_alloc(nx*ny*self.dtype.itemsize)
+        cuda.memcpy_htod(c_gpu, c_cpu)
+        self.gpu_call(c_gpu,nx,ny,symm)
+        cuda.memcpy_dtoh(c_cpu, c_gpu)
+        c_gpu.free()
         
-        return matrix_cpu.reshape(nx,ny)
+        return c_cpu
         
-    def gpu_call(self,d_gpu,nx,ny,dtype,symm=False,**params):
+    def gpu_call(self,c_gpu,nx,ny,symm=False):
         """Leaves the generated matrix on the GPU, returns a PyCuda wrapper."""
 
         # Compile module if necessary
-        mod = self.compile_with_parameters(dtype, **params)[symm]
+        mod = self.modules[symm]
 
-        matrixBlocksx = nx/self.blocksize
-        matrixBlocksy = ny/self.blocksize
+        nbx = nx/self.blocksize
+        nby = ny/self.blocksize
 
         #Load cuda function
         cuda_fct = mod.get_function("f")
@@ -115,10 +99,10 @@ __global__ void f({{dtype}} *cuda_matrix, int nx, int ny)
         ny = numpy.uint32(ny)
 
         #Execute cuda function
-        cuda_fct(d_gpu, nx, ny, block=(self.blocksize,self.blocksize,1), grid=(matrixBlocksx,matrixBlocksy))
+        cuda_fct(c_gpu, nx, ny, block=(self.blocksize,self.blocksize,1), grid=(nbx,nby))
 
         #return matrix_gpu
-        return d_gpu
+        return c_gpu
 
 exponential = {'name': 'exponential', 'preamble': "", 'params':('amp','scale'),
 'body': """
@@ -155,7 +139,7 @@ d[0]=exp(-d[0]*d[0]/{{scale}}/{{scale}})*{{amp}}*{{amp}};
 #     rem = diff_degree - fl
 # 
 #     if((matrixC_gpu != None) and (symm == True) and (nx == ny)):
-#        matrixBlocks = nx/blocksize
+#        nb = nx/blocksize
 #        if((cmin == 0) and (cmax == nx)):
 # 
 #             #Load cuda function
@@ -174,7 +158,7 @@ d[0]=exp(-d[0]*d[0]/{{scale}}/{{scale}})*{{amp}}*{{amp}};
 #             nx = numpy.uint32(nx)
 # 
 #             #Execute cuda function
-#             cuda_fct(matrixC_gpu, diff_degree, snu, rem, fl, fl, prefac, nx, block=(blocksize,blocksize,1), grid=(matrixBlocks,matrixBlocks))
+#             cuda_fct(matrixC_gpu, diff_degree, snu, rem, fl, fl, prefac, nx, block=(blocksize,blocksize,1), grid=(nb,nb))
 # 
 #             #Ouput
 #             #matrixC_cpu = numpy.ones(nx*nx,numpy.float64)

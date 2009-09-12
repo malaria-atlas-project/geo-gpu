@@ -5,6 +5,9 @@ The following code generates a distance matrix, overwrites it with a covariance
 matrix and Cholesky factors that matrix.
 ::
 
+    import numpy as np
+    import geo_gpu as gg
+
     nbx = 40
     blocksize=16
     nby = 60
@@ -12,19 +15,17 @@ matrix and Cholesky factors that matrix.
     x = np.arange(blocksize*nbx,dtype=d)
     y = np.arange(blocksize*nby,dtype=d)
     
-    D = geo_gpu.CudaDistance(geo_gpu.euclidean, blocksize)
-    C = geo_gpu.CudaRawCovariance(geo_gpu.exponential, blocksize)
+    D = gg.CudaDistance(gg.euclidean, np.dtype(d), blocksize)
+    C = gg.CudaRawCovariance(gg.exponential, np.dtype(d), blocksize, amp=2., scale=10.)
     
     D_eval = D(x,x,symm=True)
-    C_eval = C(D_eval, amp=2., scale=10., symm=True)
+    C_eval = C(D_eval, symm=True)
     S = geo_gpu.cholesky(C_eval, blocksize)    
 
 ``CudaDistance`` and ``CudaRawCovariance`` are subclasses of ``CudaMatrixFiller``.
-Each time these objects are called with a new set of parameters (eg 
-``amp=2., scale=10.``) they compile corresponding symmetric and nonsymmetric GPU 
-kernels for the current datatype behind the scenes. They cache these kernels to 
-avoid recompiling them for repeated calls. That means all parameter values are
-compiled in as constants.
+At initialization, they compile corresponding symmetric and nonsymmetric GPU 
+kernels for the given datatype, blocksize and parameter values. All parameter 
+values are compiled in as constants.
 
 When called directly as in the example above, ``CudaDistance`` and ``CudaRawCovariance``
 return numpy arrays. However, they each have a lower-lever method called ``gpu_call`` 
@@ -32,8 +33,8 @@ which returns a reference to an array on the GPU. These methods can optionally t
 GPU arrays as inputs. We can use these methods to pipe distance functions and
 covariance functions together.
 
-The function ``geo_gpu.cholesky`` similarly compiles and caches kernels for each
-block-size and dtype behind the scenes. It also makes use of a lower-level 
+The function ``geo_gpu.cholesky`` compiles and caches kernels for each block-size 
+and dtype it sees behind the scenes. It also makes use of a lower-level 
 function, ``geo_gpu.cholesky_gpu``, which will make it faster to evaluate and 
 factorize covariance matrices when the actual evaluation is not needed.
 

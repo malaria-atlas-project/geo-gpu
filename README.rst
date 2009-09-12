@@ -20,7 +20,7 @@ matrix and Cholesky factors that matrix.
     
     D_eval = D(x,x,symm=True)
     C_eval = C(D_eval, symm=True)
-    S = geo_gpu.cholesky(C_eval, blocksize)    
+    S = gg.cholesky(C_eval, blocksize)    
 
 ``CudaDistance`` and ``CudaRawCovariance`` are subclasses of ``CudaMatrixFiller``.
 At initialization, they compile corresponding symmetric and nonsymmetric GPU 
@@ -33,9 +33,9 @@ which returns a reference to an array on the GPU. These methods can optionally t
 GPU arrays as inputs. We can use these methods to pipe distance functions and
 covariance functions together.
 
-The function ``geo_gpu.cholesky`` compiles and caches kernels for each block-size 
+The function ``cholesky`` compiles and caches kernels for each block-size 
 and dtype it sees behind the scenes. It also makes use of a lower-level 
-function, ``geo_gpu.cholesky_gpu``, which will make it faster to evaluate and 
+function, ``cholesky_gpu``, which will make it faster to evaluate and 
 factorize covariance matrices when the actual evaluation is not needed.
 
 Extending

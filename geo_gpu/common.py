@@ -23,6 +23,12 @@ from template import *
 dtype_names = {
     np.dtype('float64'): 'double',
     np.dtype('float32'): 'float'}
+    
+def substitute_dtypes(param_dtypes, params, dtype):
+    out = {}
+    for k,v in param_dtypes.iteritems():
+        out[k] = '(%s) %s'%(templ_subs(param_dtypes[k], dtype=dtype), np.asscalar(np.asarray(params[k],dtype=dtype)))
+    return out
 
 class CudaMatrixFiller(object):
     """
@@ -35,8 +41,9 @@ class CudaMatrixFiller(object):
         self.dtype = np.dtype(dtype)
         
         s = templ_subs(self.generic, preamble=cuda_code['preamble'], body=cuda_code['body'])
+        sp = templ_subs(s, **substitute_dtypes(cuda_code['params'], params, dtype_names[self.dtype]))
 
-        self.source = templ_subs(s, blocksize=blocksize, dtype=dtype_names[self.dtype], **params)
+        self.source = templ_subs(sp, blocksize=blocksize, dtype=dtype_names[self.dtype])
         self.sources = {}
         self.modules = {}
 
@@ -46,10 +53,10 @@ class CudaMatrixFiller(object):
                 self.modules[symm] = cuda.SourceModule(self.sources[symm])
             except CompileError:
                 cls, inst, tb = sys.exc_info()
-                new_msg = """ Failed to compile %s with dtype %s, symm=%s. Module source follows. 
+                new_msg = """ Failed to compile with dtype %s, symm=%s. Module source follows. 
 NVCC's error message should be above the traceback.
 
 %s 
 
-Original error message from PyCuda: %s"""%(self.name, self.dtype, symm, add_line_numbers(s), inst.message)
+Original error message from PyCuda: %s"""%(self.dtype, symm, add_line_numbers(self.sources[symm]), inst.message)
                 raise cls, cls(new_msg), tb

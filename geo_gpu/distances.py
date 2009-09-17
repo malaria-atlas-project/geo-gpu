@@ -129,12 +129,12 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}}
         #return matrix_gpu
         return d_gpu
 
-dumb = {'preamble': '','params':(),
+dumb = {'preamble': '','params':{},
 'body': """
     return ({{dtype}}) 1.0;
 """}
 
-euclidean = {'preamble': "",'params':(),
+euclidean = {'preamble': "",'params':{},
 'body': """
     {{dtype}} d = 0;
     for(int i = 0; i < ndx; i++)

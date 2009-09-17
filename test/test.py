@@ -43,9 +43,9 @@ def disttest():
     print 'GPU time: %f, CPU time: %f'%(t2-t1,t3-t2)
 
 if __name__ == "__main__":
-    nbx = 40
+    nbx = 4
     blocksize=16
-    nby = 60
+    nby = 6
     
     d='float32'
     # d='float'
@@ -57,9 +57,21 @@ if __name__ == "__main__":
     Ds=D(x,x,symm=True)
     Dns=D(x,y,symm=False)
 
-    C = CudaRawCovariance(exponential, d, blocksize, amp=2., scale=10.)
+    # C = CudaRawCovariance(exponential, d, blocksize, amp=2., scale=10.)
+    C = CudaRawCovariance(matern, d, blocksize, **matern_params(diff_degree = 1.3, amp = 1., scale = 1.))
     
     Cs = C(Ds, symm=True)
     Cns = C(Dns, symm=False)
+    
+    
+    # Dpy = np.empty((len(x),len(y)))
+    # pm.gp.euclidean(Dpy,x,y)
+    # 
+    # print Dpy-Dns
+    
+    Cpy = pm.gp.Covariance(pm.gp.matern.euclidean, amp=1., scale=1., diff_degree=1.3)
+    Cnspy = Cpy(x,y)
+    
+    print np.abs(Cns-Cnspy).max()
     
     S = geo_gpu.cholesky(Cs)

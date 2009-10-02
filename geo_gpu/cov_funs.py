@@ -535,18 +535,37 @@ __device__ void d_rkbesl({{dtype}} x, {{dtype}} alpha, int nb, int ize, {{dtype}
 }
 """,
 'body' : """
+    int ncalc={{fl}}+1;
+    {{dtype}} alpha = {{rem}};
+    int nb = {{fl}}+1;
+    int ize = 1;
     {{dtype}} d_C_xi_yj = 1.0;
-        {{dtype}} BK[NBKMAX];
-        if(d[0] != 0){
+    
+    
+    // {{dtype}} alpha = .3;
+    //     int nb = 2;
+    //     int ize = 1;
+    //     int ncalc = nb;
+    //     {{dtype}} d_C_xi_yj;
+    
+        {{dtype}} BK[{{fl}}+1];
+        //if(d[0] != 0){
+             
              d_C_xi_yj = d[0];
-             d_C_xi_yj /= {{scale}};
-             d_C_xi_yj *= {{snu}};
-             d_rkbesl(d_C_xi_yj,{{rem}},{{fl}}+1,1,BK,{{fl}});
-             d_C_xi_yj = {{prefac}}*(pow(d_C_xi_yj,{{diff_degree}}))*BK[{{fl}}]; //TODO +1??? SEE FORTRAN CODE
-        }
-    d[0] = d_C_xi_yj*{{amp}}*{{amp}};
+             // d_C_xi_yj /= {{scale}};
+             // d_C_xi_yj *= {{snu}};
+             // K_bessel(&d_C_xi_yj,&alpha,&nb,&ize,BK,&ncalc);
+             // d_C_xi_yj = {{prefac}}*(pow(d_C_xi_yj,{{diff_degree}}))*BK[{{fl}}]; //TODO +1??? SEE FORTRAN CODE
+             
+             
+             //d_C_xi_yj = 1.0;
+             K_bessel(&d_C_xi_yj,&alpha,&nb,&ize,BK,&ncalc);
+             d_C_xi_yj = BK[nb-1];
+             
+        //}
+    d[0] = d_C_xi_yj;//*{{amp}}*{{amp}};
 """,
-'params' : {'diff_degree':'{{dtype}}','snu':'{{dtype}}','rem':'int','fl':'int','prefac':'{{dtype}}','scale':'{{dtype}}','amp':'{{dtype}}'}}
+'params' : {'diff_degree':'{{dtype}}','snu':'{{dtype}}','rem':'{{dtype}}','fl':'int','prefac':'{{dtype}}','scale':'{{dtype}}','amp':'{{dtype}}'}}
 
 def matern_params(diff_degree, amp, scale):
     snu = np.sqrt(diff_degree) * 2.0
@@ -557,7 +576,7 @@ def matern_params(diff_degree, amp, scale):
             'amp' : amp,
             'scale' : scale,
             'snu' : snu,
-            'fl' : fl,
+            'fl' : int(fl),
             'prefac' : prefac,
             'rem' : rem}
     

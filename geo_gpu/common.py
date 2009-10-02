@@ -36,6 +36,7 @@ class CudaMatrixFiller(object):
     """
     generic = None
     def __init__(self, cuda_code, dtype, blocksize, **params):
+        
         self.blocksize = blocksize
         self.__dict__.update(cuda_code)
         self.dtype = np.dtype(dtype)

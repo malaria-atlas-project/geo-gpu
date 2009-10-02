@@ -44,13 +44,15 @@ def disttest():
 
 if __name__ == "__main__":
     nbx = 4
-    blocksize=16
+    blocksize=1
     nby = 6
     
-    d='float32'
-    # d='float'
-    x = np.arange(blocksize*nbx,dtype=d)
-    y = np.arange(blocksize*nby,dtype=d)    
+    # d='float32'
+    d='float'
+    # x = np.arange(blocksize*nbx,dtype=d)
+    # y = np.arange(blocksize*nby,dtype=d)    
+    x = np.arange(1,dtype=d)
+    y = np.arange(7,dtype=d)
     
     D = CudaDistance(euclidean, d, blocksize)
     
@@ -72,6 +74,8 @@ if __name__ == "__main__":
     Cpy = pm.gp.Covariance(pm.gp.matern.euclidean, amp=1., scale=1., diff_degree=1.3)
     Cnspy = Cpy(x,y)
     
-    print np.abs(Cns-Cnspy).max()
+    # print np.abs(Cns-Cnspy).max()
+    print 'gpu: ',Cns
+    print 'python: ',Cnspy
     
-    S = geo_gpu.cholesky(Cs)
+    # S = geo_gpu.cholesky(Cs)

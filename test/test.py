@@ -110,7 +110,7 @@ if __name__ == "__main__":
     
     Cpy = pm.gp.Covariance(pm.gp.matern.euclidean, amp=1., scale=1., diff_degree=1.3)
     
-    C = Covariance(D, CR)
+    C = CudaCovariance(D, CR)
     Cnspy = Cpy(x,y)
     Cns = C(x,y)
     

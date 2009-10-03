@@ -26,7 +26,7 @@ import numpy as np
 # TODO: Observations!
 # TODO: Nuggets in Cholesky decomps
 # TODO: Diagonal calls
-class Covariance(pymc.gp.Covariance):
+class CudaCovariance(pymc.gp.Covariance):
     """A class mirroring pymc.gp.Covariance, but with all computations done on a GPU."""
     def __init__(self, distance, covariance):
         self.distance = distance
@@ -107,3 +107,4 @@ class Covariance(pymc.gp.Covariance):
             return gpu_to_ndarray(c_gpu, self.dtype, (x.shape[0], y.shape[0]))
             
             
+CudaCudaCudaCudaCudaCovariance = CudaCovariance

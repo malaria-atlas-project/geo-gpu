@@ -17,6 +17,7 @@ import pycuda.driver as cuda
 import pycuda.autoinit
 import pymc as pm
 import numpy
+import numpy as np
 import warnings
 import sys
 from common import *
@@ -79,12 +80,8 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}}
         ny = y.shape[0]
         
         d_gpu = self.gpu_call(x,y,symm)
-        d_cpu = numpy.empty((nx,ny),dtype=self.dtype,order='F')
-        cuda.memcpy_dtoh(d_cpu, d_gpu)
-        d_gpu.free()
+        return gpu_to_ndarray(d_gpu, self.dtype, (nx,ny))
         
-        return d_cpu
-    
     def gpu_call(self,x,y,symm=False,d_gpu=None):
         """Leaves the generated matrix on the GPU, returns a PyCuda wrapper."""
 

@@ -16,6 +16,7 @@
 import pycuda.driver as cuda
 import pycuda.autoinit
 import numpy
+import numpy as np
 import warnings
 import sys
 from common import *
@@ -71,18 +72,11 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, int nx, int ny)
         Deallocates all memory used on the GPU, returns result as NumPy matrix.
         """
 
-        c_cpu = np.array(d,dtype=self.dtype,order='F')
-        
-        nx = c_cpu.shape[0]
-        ny = c_cpu.shape[1]
+        nx = d.shape[0]
+        ny = d.shape[1]
         
         c_gpu = cuda.mem_alloc(nx*ny*self.dtype.itemsize)
-        cuda.memcpy_htod(c_gpu, c_cpu)
-        self.gpu_call(c_gpu,nx,ny,symm)
-        cuda.memcpy_dtoh(c_cpu, c_gpu)
-        c_gpu.free()
-        
-        return c_cpu
+        return gpu_to_ndarray(c_gpu, self.dtype, d.shape)
         
     def gpu_call(self,c_gpu,nx,ny,symm=False):
         """Leaves the generated matrix on the GPU, returns a PyCuda wrapper."""

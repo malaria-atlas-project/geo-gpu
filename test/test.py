@@ -16,6 +16,7 @@
 from geo_gpu import *
 import geo_gpu
 import pymc as pm
+import numpy as np
 
 def disttest():
     nbx = 40
@@ -42,40 +43,77 @@ def disttest():
     
     print 'GPU time: %f, CPU time: %f'%(t2-t1,t3-t2)
 
-if __name__ == "__main__":
+def test_correspondence():
     nbx = 4
     blocksize=1
     nby = 6
-    
+
     # d='float32'
     d='float'
     # x = np.arange(blocksize*nbx,dtype=d)
     # y = np.arange(blocksize*nby,dtype=d)    
-    x = np.arange(1,dtype=d)
-    y = np.arange(7,dtype=d)
-    
+    x = np.arange(2,dtype=d)*.25
+    y = np.arange(7,dtype=d)*.25
+
     D = CudaDistance(euclidean, d, blocksize)
-    
+
     Ds=D(x,x,symm=True)
     Dns=D(x,y,symm=False)
 
     # C = CudaRawCovariance(exponential, d, blocksize, amp=2., scale=10.)
     C = CudaRawCovariance(matern, d, blocksize, **matern_params(diff_degree = 1.3, amp = 1., scale = 1.))
-    
+
     Cs = C(Ds, symm=True)
     Cns = C(Dns, symm=False)
-    
-    
+
+
     # Dpy = np.empty((len(x),len(y)))
     # pm.gp.euclidean(Dpy,x,y)
     # 
     # print Dpy-Dns
-    
+
     Cpy = pm.gp.Covariance(pm.gp.matern.euclidean, amp=1., scale=1., diff_degree=1.3)
     Cnspy = Cpy(x,y)
-    
+
     # print np.abs(Cns-Cnspy).max()
     print 'gpu: ',Cns
     print 'python: ',Cnspy
-    
+
     # S = geo_gpu.cholesky(Cs)
+
+if __name__ == "__main__":
+    nbx = 4
+    blocksize=1
+    nby = 6
+
+    # d='float32'
+    d='float'
+    # x = np.arange(blocksize*nbx,dtype=d)
+    # y = np.arange(blocksize*nby,dtype=d)    
+    x = np.arange(2,dtype=d)*.25
+    y = np.arange(7,dtype=d)*.25
+
+    D = CudaDistance(euclidean, d, blocksize)
+    nbx = 4
+    blocksize=1
+    nby = 6
+
+    # d='float32'
+    d='float'
+    # x = np.arange(blocksize*nbx,dtype=d)
+    # y = np.arange(blocksize*nby,dtype=d)    
+    x = np.arange(2,dtype=d)*.25
+    y = np.arange(7,dtype=d)*.25
+
+    D = CudaDistance(euclidean, d, blocksize)
+    CR = CudaRawCovariance(matern, d, blocksize, **matern_params(diff_degree = 1.3, amp = 1., scale = 1.))
+    
+    Cpy = pm.gp.Covariance(pm.gp.matern.euclidean, amp=1., scale=1., diff_degree=1.3)
+    
+    C = Covariance(D, CR)
+    Cnspy = Cpy(x,y)
+    Cns = C(x,y)
+    
+    print 'gpu: ',Cns
+    print 'python: ',Cnspy
+    

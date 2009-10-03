@@ -15,6 +15,8 @@
 
 import re
 
+__all__ = ['add_line_numbers', 'templ_subs']
+
 end_token = re.compile('{{\s*endif\s*}}')
 
 def add_line_numbers(s):

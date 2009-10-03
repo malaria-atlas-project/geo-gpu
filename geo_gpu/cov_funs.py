@@ -183,7 +183,7 @@ matern = {'preamble': """
 #define DBL_MIN 1e-37
 
 __const__ __device__ {{dtype}} a = .11593151565841244881;
-__const__ __device__ {{dtype}} m_sqrt_2dpi = .11593151565841244881;
+__const__ __device__ {{dtype}} m_sqrt_2dpi = 0.7978845608029;
 __const__ __device__ {{dtype}} p[8] = { .805629875690432845,20.4045500205365151,157.705605106676174,536.671116469207504,900.382759291288778,730.923886650660393,229.299301509425145,.822467033424113231 };
 __const__ __device__ {{dtype}} q[7] = { 29.4601986247850434,277.577868510221208,1206.70325591027438,2762.91444159791519,3443.74050506564618,2210.63190113378647,572.267338359892221 };
 __const__ __device__ {{dtype}} r[5] = { -.48672575865218401848,13.079485869097804016,-101.96490580880537526,347.65409106507813131,3.495898124521934782e-4 };
@@ -549,7 +549,7 @@ __device__ void d_rkbesl({{dtype}} x, {{dtype}} alpha, int nb, int ize, {{dtype}
     //     {{dtype}} d_C_xi_yj;
     
         {{dtype}} BK[{{fl}}+1];
-        //if(d[0] != 0){
+        if(d[0] != 0){
              
              d_C_xi_yj = d[0];
              // d_C_xi_yj /= {{scale}};
@@ -562,7 +562,7 @@ __device__ void d_rkbesl({{dtype}} x, {{dtype}} alpha, int nb, int ize, {{dtype}
              K_bessel(&d_C_xi_yj,&alpha,&nb,&ize,BK,&ncalc);
              d_C_xi_yj = BK[nb-1];
              
-        //}
+        }
     d[0] = d_C_xi_yj;//*{{amp}}*{{amp}};
 """,
 'params' : {'diff_degree':'{{dtype}}','snu':'{{dtype}}','rem':'{{dtype}}','fl':'int','prefac':'{{dtype}}','scale':'{{dtype}}','amp':'{{dtype}}'}}

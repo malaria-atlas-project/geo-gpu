@@ -107,4 +107,5 @@ class CudaCovariance(pymc.gp.Covariance):
             return gpu_to_ndarray(c_gpu, self.dtype, (x.shape[0], y.shape[0]))
             
             
-CudaCudaCudaCudaCudaCovariance = CudaCovariance
+class CudaCudaCudaCudaCudaCovariance(CudaCovariance):
+    """Krigin will be easy if you promise to like my streams..."""

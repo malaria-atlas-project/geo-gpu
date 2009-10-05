@@ -20,7 +20,7 @@ from pycuda.driver import CompileError
 import sys
 from template import *
 
-__all__ = ['dtype_names', 'substitute_dtypes', 'gpu_to_ndarray', 'CudaMatrixFiller']
+__all__ = ['dtype_names', 'substitute_dtypes', 'gpu_to_ndarray', 'CudaMatrixFiller','ndarray_to_gpu']
 
 dtype_names = {
     np.dtype('float64'): 'double',
@@ -37,6 +37,11 @@ def gpu_to_ndarray(a_gpu, dtype, shape):
     cuda.memcpy_dtoh(a_cpu,a_gpu)
     a_gpu.free()
     return a_cpu
+    
+def ndarray_to_gpu(a_cpu):
+    a_gpu = cuda.mem_alloc(int(np.prod(a_cpu.shape)*a_cpu.dtype.itemsize))
+    cuda.memcpy_htod(a_gpu, a_cpu)
+    return a_gpu
     
 
 class CudaMatrixFiller(object):

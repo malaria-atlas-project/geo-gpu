@@ -103,14 +103,10 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}}
         cuda_fct = mod.get_function("compute_matrix__")
 
         #Allocate arrays on device
-        x_gpu = cuda.mem_alloc(nx*ndx*self.dtype.itemsize)
-        y_gpu = cuda.mem_alloc(ny*ndy*self.dtype.itemsize)
+        x_gpu = ndarray_to_gpu(x)
+        y_gpu = ndarray_to_gpu(y)
         if d_gpu is None:
             d_gpu = cuda.mem_alloc(nx*ny*self.dtype.itemsize)
-
-        #Copy memory from host to device
-        cuda.memcpy_htod(x_gpu, x)
-        cuda.memcpy_htod(y_gpu, y)
 
         #Convert input parameters
         nx = numpy.uint32(nx)

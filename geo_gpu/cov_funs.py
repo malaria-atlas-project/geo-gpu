@@ -75,7 +75,8 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, int nx, int ny)
         nx = d.shape[0]
         ny = d.shape[1]
         
-        c_gpu = cuda.mem_alloc(nx*ny*self.dtype.itemsize)
+        c_gpu = ndarray_to_gpu(d)
+        self.gpu_call(c_gpu,nx,ny,symm)
         return gpu_to_ndarray(c_gpu, self.dtype, d.shape)
         
     def gpu_call(self,c_gpu,nx,ny,symm=False):

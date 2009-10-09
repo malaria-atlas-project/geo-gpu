@@ -204,6 +204,9 @@ cholesky_modules = {}
 # Cholesky decomposition of matrixA which is already on gpu.
 def cholesky_gpu(matrixA_gpu, matrixA_size, dtype, blocksize):
 
+    if dtype_names[dtype] != 'float':
+        raise NotImplementedError, 'Double precision not working yet.'
+
     # Compile a kernel for this dtype and blocksize, if it does not already exist.
     if cholesky_modules.has_key((dtype, blocksize)):
         mod = cholesky_modules[dtype, blocksize]
@@ -214,9 +217,9 @@ def cholesky_gpu(matrixA_gpu, matrixA_size, dtype, blocksize):
     matrixBlocks = numpy.uint32(matrixA_size/blocksize)
     matrixRest = matrixA_size%blocksize
     
-    if ((matrixRest != 0) and (nx != ny)):
-       # Matrix is not symmetric or has the wrong dimension -> exit
-       return None
+    # if ((matrixRest != 0) and (nx != ny)):
+    #    # Matrix is not symmetric or has the wrong dimension -> exit
+    #    return None
 
     if ((matrixA_gpu == None) or (matrixA_size == 0)):
        return None

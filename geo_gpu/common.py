@@ -15,6 +15,7 @@
 
 import numpy as np
 import pycuda.driver as cuda
+from pycuda.compiler import SourceModule
 import pycuda.autoinit
 from pycuda.driver import CompileError
 import sys
@@ -25,6 +26,8 @@ __all__ = ['dtype_names', 'substitute_dtypes', 'gpu_to_ndarray', 'CudaMatrixFill
 dtype_names = {
     np.dtype('float64'): 'double',
     np.dtype('float32'): 'float'}
+
+dtype_archs = {}
     
 def substitute_dtypes(param_dtypes, params, dtype):
     out = {}
@@ -55,6 +58,9 @@ class CudaMatrixFiller(object):
         self.__dict__.update(cuda_code)
         self.dtype = np.dtype(dtype)
         
+        if self.dtype != np.dtype('float32'):
+            raise NotImplementedError, 'We do not have double-precision working yet.'
+        
         s = templ_subs(self.generic, preamble=cuda_code['preamble'], body=cuda_code['body'])
         sp = templ_subs(s, **substitute_dtypes(cuda_code['params'], params, dtype_names[self.dtype]))
 
@@ -65,7 +71,7 @@ class CudaMatrixFiller(object):
         for symm in [True, False]:
             try:
                 self.sources[symm] = templ_subs(self.source, symm=symm)
-                self.modules[symm] = cuda.SourceModule(self.sources[symm])
+                self.modules[symm] = SourceModule(self.sources[symm])
             except CompileError:
                 cls, inst, tb = sys.exc_info()
                 new_msg = """ Failed to compile with dtype %s, symm=%s. Module source follows. 

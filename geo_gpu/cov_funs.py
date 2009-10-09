@@ -176,9 +176,8 @@ matern = {'preamble': """
 #define DBL_MAX 1e+37
 #define DBL_EPSILON 1E-9
 #define DBL_MIN 1e-37
-
 __const__ __device__ {{dtype}} a = .11593151565841244881;
-__const__ __device__ {{dtype}} m_sqrt_2dpi = 0.7978845608029;
+__const__ __device__ {{dtype}} m_sqrt_2dpi = 0.797884560802865;
 __const__ __device__ {{dtype}} p[8] = { .805629875690432845,20.4045500205365151,157.705605106676174,536.671116469207504,900.382759291288778,730.923886650660393,229.299301509425145,.822467033424113231 };
 __const__ __device__ {{dtype}} q[7] = { 29.4601986247850434,277.577868510221208,1206.70325591027438,2762.91444159791519,3443.74050506564618,2210.63190113378647,572.267338359892221 };
 __const__ __device__ {{dtype}} r[5] = { -.48672575865218401848,13.079485869097804016,-101.96490580880537526,347.65409106507813131,3.495898124521934782e-4 };
@@ -186,31 +185,26 @@ __const__ __device__ {{dtype}} s[4] = { -25.579105509976461286,212.5726043222654
 __const__ __device__ {{dtype}} t[6] = { 1.6125990452916363814e-10,2.5051878502858255354e-8,2.7557319615147964774e-6,1.9841269840928373686e-4,.0083333333333334751799,.16666666666666666446 };
 __const__ __device__ {{dtype}} estm[6] = { 52.0583,5.7607,2.7782,14.4303,185.3004, 9.3715 };
 __const__ __device__ {{dtype}} estf[7] = { 41.8341,7.1075,6.4306,42.511,1.35633,84.5096,20.};
-
 __device__ {{dtype}} ftrunc({{dtype}} x)
 {
     if(x >= 0) return floor(x);
     else return ceil(x);
 }
-
 __device__ int imin2(int x, int y)
 {
 return (x < y) ? x : y;
 }
-
 __device__ int imax2(int x, int y)
 {
 return (x < y) ? y : x;
 }
-
 __device__  void K_bessel({{dtype}} *x, {{dtype}} *alpha, int *nb, int *ize, {{dtype}} *bk, int *ncalc)
 {
 /* Local variables */
 int iend, i, j, k, m, ii, mplus1;
-{{dtype}} x2by4, twox, c, blpha, ratio, wminf;
-{{dtype}} d1, d2, d3, f0, f1, f2, p0, q0, t1, t2, twonu;
-{{dtype}} dm, ex, bk1, bk2, nu;
-
+{{dtype}} x2by4 = 0.0, twox = 0.0, c = 0.0, blpha = 0.0, ratio = 0.0, wminf = 0.0;
+{{dtype}} d1 = 0.0, d2 = 0.0, d3 = 0.0, f0 = 0.0, f1 = 0.0, f2 = 0.0, p0 = 0.0, q0 = 0.0, t1 = 0.0, t2 = 0.0, twonu = 0.0;
+{{dtype}} dm = 0.0, ex = 0.0, bk1 = 0.0, bk2 = 0.0, nu = 0.0, loopCount = 0.0;
 ii = 0; /* -Wall */
 ex = *x;
 nu = *alpha;
@@ -220,10 +214,10 @@ if(ex <= 0 || (*ize == 1 && ex > xmax_BESS_K)) {
     if(ex <= 0) {
     if(ex < 0) return;
     for(i=0; i < *nb; i++)
-  bk[i] = (1.0 / 0.0);
+	bk[i] = (1.0 / 0.0);
     } else /* would only have underflow */
     for(i=0; i < *nb; i++)
-  bk[i] = 0.;
+	bk[i] = 0.;
     *ncalc = *nb;
     return;
 }
@@ -241,15 +235,15 @@ d3 = -c;
 if (ex <= 1.) {
     /* ------------------------------------------------------------
       Calculation of P0 = GAMMA(1+ALPHA) * (2/X)**ALPHA
-        Q0 = GAMMA(1-ALPHA) * (X/2)**ALPHA
+	      Q0 = GAMMA(1-ALPHA) * (X/2)**ALPHA
       ------------------------------------------------------------ */
     d1 = 0.; d2 = p[0];
     t1 = 1.; t2 = q[0];
     for (i = 2; i <= 7; i += 2) {
-    d1 = c * d1 + p[i - 1];
-    d2 = c * d2 + p[i];
-    t1 = c * t1 + q[i - 1];
-    t2 = c * t2 + q[i];
+	d1 = c * d1 + p[i - 1];
+	d2 = c * d2 + p[i];
+	t1 = c * t1 + q[i - 1];
+	t2 = c * t2 + q[i];
     }
     d1 = nu * d1;
     t1 = nu * t1;
@@ -261,23 +255,23 @@ if (ex <= 1.) {
     /* -----------------------------------------------------------
       Calculation of F0 =
       ----------------------------------------------------------- */
-    d1 = r[4];
+    d1 = r[4];      
     t1 = 1.;
     for (i = 0; i < 4; ++i) {
-    d1 = c * d1 + r[i];
-    t1 = c * t1 + s[i];
+	d1 = c * d1 + r[i];
+	t1 = c * t1 + s[i];
     }
     /* d2 := sinh(f1)/ nu = sinh(f1)/(f1/f0)
     *       = f0 * sinh(f1)/f1 */
     if (fabs(f1) <= .5) {
-    f1 *= f1;
-    d2 = 0.;
-    for (i = 0; i < 6; ++i) {
-  d2 = f1 * d2 + t[i];
-    }
-    d2 = f0 + f0 * f1 * d2;
+	f1 *= f1;
+	d2 = 0.;
+	for (i = 0; i < 6; ++i) {
+		d2 = f1 * d2 + t[i];
+	}
+	d2 = f0 + f0 * f1 * d2;
     } else {
-    d2 = sinh(f1) / nu;
+	d2 = sinh(f1) / nu;
     }
     f0 = d2 - nu * d1 / (t1 * p0);
     if (ex <= 1e-10) {
@@ -287,78 +281,86 @@ if (ex <= 1.) {
       --------------------------------------------------------- */
     bk[0] = f0 + ex * f0;
     if (*ize == 1) {
-  bk[0] -= ex * bk[0];
+	bk[0] -= ex * bk[0];
     }
     ratio = p0 / f0;
     c = ex * DBL_MAX;
     if (k != 0) {
-  /* ---------------------------------------------------
-    Calculation of K(ALPHA,X)
-    and  X*K(ALPHA+1,X)/K(ALPHA,X),    ALPHA >= 1/2
-    --------------------------------------------------- */
-  *ncalc = -1;
-  if (bk[0] >= c / ratio) {
-  return;
-  }
-  bk[0] = ratio * bk[0] / ex;
-  twonu += 2.;
-  ratio = twonu;
+	/* ---------------------------------------------------
+	  Calculation of K(ALPHA,X)
+	  and  X*K(ALPHA+1,X)/K(ALPHA,X),    ALPHA >= 1/2
+	  --------------------------------------------------- */
+	*ncalc = -1;
+	if (bk[0] >= c / ratio) {
+		;
+	}
+	bk[0] = ratio * bk[0] / ex;
+	twonu += 2.;
+	ratio = twonu;
     }
     *ncalc = 1;
     if (*nb == 1)
-  return;
-
+	return;
     /* -----------------------------------------------------
       Calculate  K(ALPHA+L,X)/K(ALPHA+L-1,X),
       L = 1, 2, ... , NB-1
       ----------------------------------------------------- */
     *ncalc = -1;
     for (i = 1; i < *nb; ++i) {
-  if (ratio >= c)
-  return;
-
-  bk[i] = ratio / ex;
-  twonu += 2.;
-  ratio = twonu;
+	if (ratio >= c)
+	return;
+	bk[i] = ratio / ex;
+	twonu += 2.;
+	ratio = twonu;
     }
     *ncalc = 1;
     goto L420;
     } else {
-    /* ------------------------------------------------------
-      10^-10 < X <= 1.0
-      ------------------------------------------------------ */
-    c = 1.;
-    x2by4 = ex * ex / 4.;
-    p0 = .5 * p0;
-    q0 = .5 * q0;
-    d1 = -1.;
-    d2 = 0.;
-    bk1 = 0.;
-    bk2 = 0.;
-    f1 = f0;
-    f2 = p0;
+	/* ------------------------------------------------------
+	  10^-10 < X <= 1.0
+	  ------------------------------------------------------ */
+	c = 1.;
+	x2by4 = ex * ex / 4.;
+	p0 = .5 * p0;
+	q0 = .5 * q0;
+	d1 = -1.;
+	d2 = 0.;
+	bk1 = 0.;
+	bk2 = 0.;
+	f1 = f0;
+	f2 = p0;
+    double f00 = f0;
+    double p00 = p0;
+    double q00 = q0;
+            loopCount = 0;
+            int loop = 1;
     do {
-  d1 += 2.;
-  d2 += 1.;
-  d3 = d1 + d3;
-  c = x2by4 * c / d2;
-  f0 = (d2 * f0 + p0 + q0) / d3;
-  p0 /= d2 - nu;
-  q0 /= d2 + nu;
-  t1 = c * f0;
-  t2 = c * (p0 - d2 * f0);
-  bk1 += t1;
-  bk2 += t2;
-    } while (fabs(t1 / (f1 + bk1)) > DBL_EPSILON ||
-  fabs(t2 / (f2 + bk2)) > DBL_EPSILON);
+        d1 += 2.;
+        d2 += 1.; // FUCKED
+        d3 = d1 + d3;
+        c = x2by4 * c / d2;
+        f0 = (d2 * f0 + p0 + q0) / d3;  // FUCKED
+        p0 /= d2 - nu;
+        q0 /= d2 + nu;
+        t1 = c * f0;
+        t2 = c * (p0 - d2 * f0);
+        bk1 += t1;
+        bk2 += t2;
+                    loopCount += 1;
+                    if(fabs(t1 / (f1 + bk1)) > DBL_EPSILON || fabs(t2 / (f2 + bk2)) > DBL_EPSILON)
+        {
+       loop = 1;
+        }
+        else
+        {
+       loop = 0;
+        }
+    } while (loop == 1);
+
     bk1 = f1 + bk1;
     bk2 = 2. * (f2 + bk2) / ex;
-    if (*ize == 2) {
-  d1 = exp(ex);
-  bk1 *= d1;
-  bk2 *= d1;
-    }
-    wminf = estf[0] * ex + estf[1];
+
+	wminf = estf[0] * ex + estf[1];
     }
 } else if (DBL_EPSILON * ex > 1.) {
     /* -------------------------------------------------
@@ -368,7 +370,6 @@ if (ex <= 1.) {
     bk1 = 1. / (m_sqrt_2dpi * sqrt(ex));
     for (i = 0; i < *nb; ++i) bk[i] = bk1;         
     return;
-
 } else {
     /* -------------------------------------------------------
       X > 1.0
@@ -386,9 +387,9 @@ if (ex <= 1.) {
     d2 -= .5;
     d2 *= d2;
     for (i = 2; i <= m; ++i) {
-  d1 -= 2.;
-  d2 -= d1;
-  ratio = (d3 + d2) / (twox + d1 - ratio);
+	d1 -= 2.;
+	d2 -= d1;
+	ratio = (d3 + d2) / (twox + d1 - ratio);
     }
     /* -----------------------------------------------------------
       Calculation of I(|ALPHA|,X) and I(|ALPHA|+1,X) by backward
@@ -402,25 +403,25 @@ if (ex <= 1.) {
     f1 = DBL_MIN;
     f0 = (2. * (c + d2) / ex + .5 * ex / (c + d2 + 1.)) * DBL_MIN;
     for (i = 3; i <= m; ++i) {
-  d2 -= 1.;
-  f2 = (d3 + d2 + d2) * f0;
-  blpha = (1. + d1 / d2) * (f2 + blpha);
-  f2 = f2 / ex + f1;
-  f1 = f0;
-  f0 = f2;
+	d2 -= 1.;
+	f2 = (d3 + d2 + d2) * f0;
+	blpha = (1. + d1 / d2) * (f2 + blpha);
+	f2 = f2 / ex + f1;
+	f1 = f0;
+	f0 = f2;
     }
     f1 = (d3 + 2.) * f0 / ex + f1;
     d1 = 0.;
     t1 = 1.;
     for (i = 1; i <= 7; ++i) {
-  d1 = c * d1 + p[i - 1];
-  t1 = c * t1 + q[i - 1];
+	d1 = c * d1 + p[i - 1];
+	t1 = c * t1 + q[i - 1];
     }
     p0 = exp(c * (a + c * (p[7] - c * d1 / t1) - log(ex))) / ex;
     f2 = (c + .5 - ratio) * f1 / ex;
     bk1 = p0 + (d3 * f0 - f2 + f0 + blpha) / (f2 + f1 + f0) * p0;
     if (*ize == 1) {
-  bk1 *= exp(-ex);
+	bk1 *= exp(-ex);
     }
     wminf = estf[2] * ex + estf[3];
     } else {
@@ -434,15 +435,15 @@ if (ex <= 1.) {
     d2 *= d2;
     d1 = dm + dm;
     for (i = 2; i <= m; ++i) {
-  dm -= 1.;
-  d1 -= 2.;
-  d2 -= d1;
-  ratio = (d3 + d2) / (twox + d1 - ratio);
-  blpha = (ratio + ratio * blpha) / dm;
+	dm -= 1.;
+	d1 -= 2.;
+	d2 -= d1;
+	ratio = (d3 + d2) / (twox + d1 - ratio);
+	blpha = (ratio + ratio * blpha) / dm;
     }
     bk1 = 1. / ((m_sqrt_2dpi + m_sqrt_2dpi * blpha) * sqrt(ex));
     if (*ize == 1)
-  bk1 *= exp(-ex);
+	bk1 *= exp(-ex);
     wminf = estf[4] * (ex - fabs(ex - estf[6])) + estf[5];
     }
     /* ---------------------------------------------------------
@@ -459,14 +460,12 @@ if (ex <= 1.) {
 bk[0] = bk1;
 if (iend == 0)
     return;
-
 j = 1 - k;
 if (j >= 0)
     bk[j] = bk2;
-
 if (iend == 1)
+        bk[1] = bk2;
     return;
-
 m = imin2((long) (wminf - nu),iend);
 for (i = 2; i <= m; ++i) {
     t1 = bk1;
@@ -474,10 +473,10 @@ for (i = 2; i <= m; ++i) {
     twonu += 2.;
     if (ex < 1.) {
     if (bk1 >= DBL_MAX / twonu * ex)
-  break;
+	break;
     } else {
     if (bk1 / ex >= DBL_MAX / twonu)
-  break;
+	break;
     }
     bk2 = twonu / ex * bk1 + t1;
     ii = i;
@@ -486,7 +485,6 @@ for (i = 2; i <= m; ++i) {
     bk[j] = bk2;
     }
 }
-
 m = ii;
 if (m == iend) {
     return;
@@ -502,8 +500,7 @@ for (i = mplus1; i <= iend; ++i) {
     bk[j] = ratio;
     } else {
     if (bk2 >= DBL_MAX / ratio)
-  return;
-
+	return;
     bk2 *= ratio;
     }
 }
@@ -523,8 +520,7 @@ for (i = *ncalc; i < *nb; ++i) { /* i == *ncalc */
 }
 }     
 }
-
-__device__ void d_rkbesl({{dtype}} x, {{dtype}} alpha, int nb, int ize, {{dtype}} *bk, int ncalc)
+__device__ void rkbesl({{dtype}} x, {{dtype}} alpha, int nb, int ize, {{dtype}} *bk, int ncalc)
 {
       K_bessel(&x, &alpha, &nb, &ize, bk, &ncalc);
 }
@@ -537,13 +533,9 @@ __device__ void d_rkbesl({{dtype}} x, {{dtype}} alpha, int nb, int ize, {{dtype}
     {{dtype}} d_C_xi_yj = 1.0;
     
     
-    // {{dtype}} alpha = .3;
-    //     int nb = 2;
-    //     int ize = 1;
-    //     int ncalc = nb;
-    //     {{dtype}} d_C_xi_yj;
-    
         {{dtype}} BK[{{fl}}+1];
+        for(int i = 0; i <= {{fl}}; i++) BK[i] = 0.0;
+        
         if(d[0] != 0){
              
              d_C_xi_yj = d[0];
@@ -554,8 +546,8 @@ __device__ void d_rkbesl({{dtype}} x, {{dtype}} alpha, int nb, int ize, {{dtype}
              
              
              //d_C_xi_yj = 1.0;
-             K_bessel(&d_C_xi_yj,&alpha,&nb,&ize,BK,&ncalc);
-             d_C_xi_yj = BK[nb-1];
+             rkbesl(d_C_xi_yj,{{rem}},{{fl}}+1,1,BK,nb);
+             d_C_xi_yj = BK[{{fl}}];
              
         }
     d[0] = d_C_xi_yj;//*{{amp}}*{{amp}};

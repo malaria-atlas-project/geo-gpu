@@ -39,13 +39,8 @@ class CudaCovariance(pymc.gp.Covariance):
 
         self.dtype = self.covariance.dtype
         
-    def gpu_call(self, x, y):
+    def gpu_call(self, x, y, symm=False):
         
-        if y is x:
-            symm=True
-        else:
-            symm=False
-
         # Remember shape of x, and then 'regularize' it.
         orig_shape = np.shape(x)
         if len(orig_shape)>1:
@@ -76,15 +71,15 @@ class CudaCovariance(pymc.gp.Covariance):
     def diag_gpu_call(self, x):
         raise NotImplemented
     
-    def gpu_cholesky(self, x, blocksize, nugget):
-        u_gpu = self.gpu_call(x, x, symm=True)
+    def gpu_cholesky(self, x, blocksize, nugget=None):
+        u_gpu = self.gpu_call(x, x)
         if nugget is not None:
             raise NotImplemented
         cholesky_gpu(u_gpu, x.shape[0], self.dtype, blocksize)
         return u_gpu
         
     def cholesky(self, x, observed=True, regularize=True, nugget=None, blocksize=16):
-        x=regularize_array(x)
+        x=pymc.gp.regularize_array(x)
         u_gpu = self.gpu_cholesky(x,blocksize,nugget)
         return gpu_to_ndarray(u_gpu, self.dtype, (x.shape[0],)*2)
         
@@ -93,6 +88,7 @@ class CudaCovariance(pymc.gp.Covariance):
         
     def __call__(self, x, y=None, observed=True, regularize=True):
 
+        symm = y is x
         x=pymc.gp.regularize_array(x)
 
         # Diagonal case
@@ -103,7 +99,7 @@ class CudaCovariance(pymc.gp.Covariance):
         # Full case
         else:                
             y = pymc.gp.regularize_array(y)
-            c_gpu = self.gpu_call(x,y)
+            c_gpu = self.gpu_call(x,y,symm=symm)
             return gpu_to_ndarray(c_gpu, self.dtype, (x.shape[0], y.shape[0]))
             
             

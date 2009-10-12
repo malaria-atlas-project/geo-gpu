@@ -539,18 +539,14 @@ __device__ void rkbesl({{dtype}} x, {{dtype}} alpha, int nb, int ize, {{dtype}} 
         if(d[0] != 0){
              
              d_C_xi_yj = d[0];
-             // d_C_xi_yj /= {{scale}};
-             // d_C_xi_yj *= {{snu}};
-             // K_bessel(&d_C_xi_yj,&alpha,&nb,&ize,BK,&ncalc);
-             // d_C_xi_yj = {{prefac}}*(pow(d_C_xi_yj,{{diff_degree}}))*BK[{{fl}}]; //TODO +1??? SEE FORTRAN CODE
-             
-             
-             //d_C_xi_yj = 1.0;
+             d_C_xi_yj /= {{scale}};
+             d_C_xi_yj *= {{snu}};
              rkbesl(d_C_xi_yj,{{rem}},{{fl}}+1,1,BK,nb);
-             d_C_xi_yj = BK[{{fl}}];
+             d_C_xi_yj = {{prefac}}*(pow(d_C_xi_yj,{{diff_degree}}))*BK[{{fl}}]; //TODO +1??? SEE FORTRAN CODE
+
              
         }
-    d[0] = d_C_xi_yj;//*{{amp}}*{{amp}};
+    d[0] = d_C_xi_yj*{{amp}}*{{amp}};
 """,
 'params' : {'diff_degree':'{{dtype}}','snu':'{{dtype}}','rem':'{{dtype}}','fl':'int','prefac':'{{dtype}}','scale':'{{dtype}}','amp':'{{dtype}}'}}
 

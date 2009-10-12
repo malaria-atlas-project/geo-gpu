@@ -200,6 +200,7 @@ __global__ void d_choldc_loupdate({{dtype}} *m, int matrix_size,  int mat_blocks
 """
 
 cholesky_modules = {}
+cholesky_sources = {}
 
 # Cholesky decomposition of matrixA which is already on gpu.
 def cholesky_gpu(matrixA_gpu, matrixA_size, dtype, blocksize):
@@ -211,7 +212,9 @@ def cholesky_gpu(matrixA_gpu, matrixA_size, dtype, blocksize):
     if cholesky_modules.has_key((dtype, blocksize)):
         mod = cholesky_modules[dtype, blocksize]
     else:
-        mod = cholesky_modules[dtype, blocksize] = cuda.SourceModule(templ_subs(cholesky_template, blocksize=blocksize, dtype=dtype_names[dtype]))
+        s = templ_subs(cholesky_template, blocksize=blocksize, dtype=dtype_names[dtype])
+        cholesky_sources[dtype, blocksize] = s
+        mod = cholesky_modules[dtype, blocksize] = cuda.SourceModule(s)
     
     matrixA_size = numpy.uint32(matrixA_size)
     matrixBlocks = numpy.uint32(matrixA_size/blocksize)

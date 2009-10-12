@@ -113,21 +113,21 @@ def test_timing():
 
     d='float32'
     
-    Cpy = pm.gp.Covariance(pm.gp.matern.euclidean, amp=1., scale=1., diff_degree=1.3)
+    Cpy = pm.gp.FullRankCovariance(pm.gp.matern.euclidean, amp=1., scale=100., diff_degree=1.3)
 
-    y = pymc.gp.regularize_array(np.arange(2**13,dtype=d)*.25)
+    y = pymc.gp.regularize_array(np.arange(2**15,dtype=d)*.25)
     x = y.copy()
     
-    for blocksize in [4,8,16]:
+    for blocksize in [16]:
         print 'Blocksize %i'%blocksize
         # for xsize in np.power(2,[9,10,11,12,13]):            
-        for xsize in np.power(2,[10,11,12,13]):            
+        for xsize in np.power(2,[10,11,12,13,14]):            
             print '\tn=%i'%xsize
             
             ypart = y[:xsize]
             
             D = CudaDistance(euclidean, d, blocksize)
-            CR = CudaRawCovariance(matern, d, blocksize, **matern_params(diff_degree = 1.3, amp = 1., scale = 1.))
+            CR = CudaRawCovariance(matern, d, blocksize, **matern_params(diff_degree = 1.3, amp = 1., scale = 100.))
             C = CudaCovariance(D, CR)
             
             print '\t\tAsymmetric evaluation:'
@@ -156,18 +156,19 @@ def test_timing():
             Cs = C.gpu_call(ypart,ypart)
             print '\t\t\tGPU, no copy back to main: %fs'%(time.time()-t1)
             
-            # print '\t\tSymmetric evaluation and Cholesky:'
-            # t1 = time.time()
-            # Spy = Cpy.cholesky(ypart)
-            # print '\t\t\tFortran: %fs'%(time.time()-t1)
-            # 
-            # t1 = time.time()
-            # S = C.cholesky(ypart)
-            # print '\t\t\tGPU: %fs'%(time.time()-t1)
-            # 
-            # t1 = time.time()
-            # S = C.gpu_cholesky(ypart, blocksize=blocksize)
-            # print '\t\t\tGPU, no copy back to main: %fs'%(time.time()-t1)
+            print '\t\tSymmetric evaluation and Cholesky:'
+            t1 = time.time()  
+            Spy = Cpy.cholesky(ypart)
+            print '\t\t\tFortran: %fs'%(time.time()-t1)
+            
+            t1 = time.time()
+            S = C.cholesky(ypart)
+            print '\t\t\tGPU: %fs'%(time.time()-t1)
+            
+            t1 = time.time()
+            S = C.gpu_cholesky(ypart, blocksize=blocksize)
+            print '\t\t\tGPU, no copy back to main: %fs'%(time.time()-t1)
     
 if __name__ == "__main__":
     test_timing()
+    # test_correspondence_covfun()

@@ -96,24 +96,31 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}}
         ndx = x.shape[1]
         ndy = ndx
 
-        matrixBlocksx = nx/self.blocksize
-        matrixBlocksy = ny/self.blocksize        
+        nbx = int(np.ceil(nx/float(self.blocksize)))
+        nby = int(np.ceil(ny/float(self.blocksize)))
+
+        #Convert input parameters
+        nx_ = numpy.uint32(nbx*self.blocksize)
+        ny_ = numpy.uint32(nby*self.blocksize)   
+        ndx = numpy.uint32(ndx)
 
         #Load cuda function
         cuda_fct = mod.get_function("compute_matrix__")
 
-        #Allocate arrays on device
-        x_gpu = ndarray_to_gpu(x)
-        y_gpu = ndarray_to_gpu(y)
-        if d_gpu is None:
-            d_gpu = cuda.mem_alloc(nx*ny*self.dtype.itemsize)
+        x_ = np.empty((nx_,ndx),dtype=self.dtype)
+        x_[:nx,:]=x
+        y_ = np.empty((ny_,ndy),dtype=self.dtype)
+        y_[:ny,:]=y
 
-        #Convert input parameters
-        nx = numpy.uint32(nx)
-        ndx = numpy.uint32(ndx)
+        #Allocate arrays on device
+        x_gpu = ndarray_to_gpu(x_)
+        y_gpu = ndarray_to_gpu(y_)
+        if d_gpu is None:
+            d_gpu = cuda.mem_alloc(int(nx_*ny_*self.dtype.itemsize))
+            d_gpu.shape=(nx_,ny_)
 
         #Execute cuda function
-        cuda_fct(d_gpu, x_gpu, y_gpu, nx, ndx, block=(self.blocksize,self.blocksize,1), grid=(matrixBlocksx,matrixBlocksy))
+        cuda_fct(d_gpu, x_gpu, y_gpu, nx_, ndx, block=(self.blocksize,self.blocksize,1), grid=(nbx,nby))
 
         #Free memory on gpu
         x_gpu.free()

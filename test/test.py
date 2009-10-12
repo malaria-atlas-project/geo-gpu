@@ -17,6 +17,7 @@ from geo_gpu import *
 import geo_gpu
 import pymc as pm
 import numpy as np
+from numpy.testing import assert_almost_equal
 
 def disttest():
     nbx = 40
@@ -44,54 +45,16 @@ def disttest():
     print 'GPU time: %f, CPU time: %f'%(t2-t1,t3-t2)
 
 def test_correspondence():
-    nbx = 4
-    blocksize=1
-    nby = 6
+    nbx = 1
+    blocksize=2
+    nby = 2
 
     d='float32'
     # d='float'
-    # x = np.arange(blocksize*nbx,dtype=d)
-    # y = np.arange(blocksize*nby,dtype=d)    
-    x = np.arange(1,dtype=d)*.25
-    y = np.arange(7,dtype=d)*.25
-
-    D = CudaDistance(euclidean, d, blocksize)
-
-    Ds=D(x,x,symm=True)
-    Dns=D(x,y,symm=False)
-
-    # C = CudaRawCovariance(exponential, d, blocksize, amp=2., scale=10.)
-    C = CudaRawCovariance(matern, d, blocksize, **matern_params(diff_degree = 1.3, amp = 1., scale = 1.))
-
-    Cs = C(Ds, symm=True)
-    Cns = C(Dns, symm=False)
-
-
-    # Dpy = np.empty((len(x),len(y)))
-    # pm.gp.euclidean(Dpy,x,y)
-    # 
-    # print Dpy-Dns
-
-    Cpy = pm.gp.Covariance(pm.gp.matern.euclidean, amp=1., scale=1., diff_degree=1.3)
-    Cnspy = Cpy(x,y)
-
-    # print np.abs(Cns-Cnspy).max()
-    print 'gpu: ',Cns
-    print 'python: ',Cnspy
-
-    # S = geo_gpu.cholesky(Cs)
-
-def test_correspondence_covfun():
-    nbx = 4
-    blocksize=1
-    nby = 6
-
-    d='float32'
-    # d='float'
-    # x = np.arange(blocksize*nbx,dtype=d)
-    # y = np.arange(blocksize*nby,dtype=d)    
-    x = np.arange(1,dtype=d)*.25
-    y = np.arange(7,dtype=d)*.25
+    x = np.arange(blocksize*nbx,dtype=d)
+    y = np.arange(blocksize*nby,dtype=d)    
+    # x = np.arange(1,dtype=d)*.25
+    # y = np.arange(7,dtype=d)*.25
 
     D = CudaDistance(euclidean, d, blocksize)
     CR = CudaRawCovariance(matern, d, blocksize, **matern_params(diff_degree = 1.3, amp = 1., scale = 1.))
@@ -105,9 +68,12 @@ def test_correspondence_covfun():
     Cspy = Cpy(y,y)
     Cs = C(y,y)
     
-    print 'gpu: ',Cs[0,:]
-    print 'python: ',Cspy[0,:]
-
+    print Cns-Cnspy
+    print Cs-Cspy
+    
+    assert_almost_equal(Cns,Cnspy)
+    assert_almost_equal(Cs,Cspy)
+    
 def test_timing():
     import time
 
@@ -121,7 +87,7 @@ def test_timing():
     for blocksize in [16]:
         print 'Blocksize %i'%blocksize
         # for xsize in np.power(2,[9,10,11,12,13]):            
-        for xsize in np.power(2,[10,11,12,13,14]):            
+        for xsize in np.power(2,[10,11,12]):            
             print '\tn=%i'%xsize
             
             ypart = y[:xsize]
@@ -170,5 +136,5 @@ def test_timing():
             print '\t\t\tGPU, no copy back to main: %fs'%(time.time()-t1)
     
 if __name__ == "__main__":
-    test_timing()
-    # test_correspondence_covfun()
+    # test_timing()
+    test_correspondence()

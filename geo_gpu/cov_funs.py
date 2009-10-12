@@ -53,13 +53,18 @@ __device__ void compute_element__({{dtype}} *d)
 {
 {{body}}
 }
-__global__ void compute_matrix__({{dtype}} *cuda_matrix, int nx, int ny)
+__global__ void compute_matrix__({{dtype}} *cuda_matrix, int nx, int ny, int nxmax, int nymax)
 {
+    int nxi = blockIdx.x * blockDim.x + threadIdx.x;
+    int nyj = blockIdx.y * blockDim.y + threadIdx.y;
     {{ if symm }}
     if(blockIdx.x >= blockIdx.y){ 
         {{ endif }}
-        int nxi = blockIdx.x * blockDim.x + threadIdx.x;
-        int nyj = blockIdx.y * blockDim.y + threadIdx.y;
+        if ((nxi>nxmax)||(nyj>nymax)){
+            {{if symm}}
+            if (nxi == nyj) cuda_matrix[nyj*nx + nxi] = 1;
+            else {{endif}} cuda_matrix[nyj*nx + nxi] = 1;
+        }
         compute_element__(cuda_matrix + nyj*nx + nxi);
         __syncthreads;
         {{if symm }}
@@ -75,7 +80,7 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, int nx, int ny)
         nx = d.shape[0]
         ny = d.shape[1]
         
-        c_gpu = ndarray_to_gpu(d)
+        c_gpu = ndarray_to_gpu(d, self.blocksize)
         self.gpu_call(c_gpu,nx,ny,symm)
         return gpu_to_ndarray(c_gpu, self.dtype, d.shape)
         
@@ -85,18 +90,18 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, int nx, int ny)
         # Compile module if necessary
         mod = self.modules[symm]
 
-        nbx = nx/self.blocksize
-        nby = ny/self.blocksize
+        nbx = int(np.ceil(nx/float(self.blocksize)))
+        nby = int(np.ceil(ny/float(self.blocksize)))
 
         #Load cuda function
         cuda_fct = mod.get_function("compute_matrix__")
 
         #Convert input parameters
-        nx = numpy.uint32(nx)
-        ny = numpy.uint32(ny)
+        nx_ = numpy.uint32(nbx*self.blocksize)
+        ny_ = numpy.uint32(nby*self.blocksize)
 
         #Execute cuda function
-        cuda_fct(c_gpu, nx, ny, block=(self.blocksize,self.blocksize,1), grid=(nbx,nby))
+        cuda_fct(c_gpu, nx_, ny_, numpy.uint32(nx), numpy.uint32(ny), block=(self.blocksize,self.blocksize,1), grid=(nbx,nby))
 
         #return matrix_gpu
         return c_gpu

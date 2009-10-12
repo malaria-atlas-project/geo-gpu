@@ -13,6 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import matplotlib
+matplotlib.use('pdf')
+
 from geo_gpu import *
 import geo_gpu
 import pymc as pm
@@ -83,16 +86,19 @@ def test_correspondence():
     # S = geo_gpu.cholesky(Cs)
 
 def test_correspondence_covfun():
-    nbx = 4
-    blocksize=1
-    nby = 6
+
+    nbx = 30
+    blocksize=16
+    nby = 60
 
     d='float32'
     # d='float'
-    # x = np.arange(blocksize*nbx,dtype=d)
-    # y = np.arange(blocksize*nby,dtype=d)    
-    x = np.arange(1,dtype=d)*.25
-    y = np.arange(7,dtype=d)*.25
+    x = np.arange(blocksize*nbx,dtype=d)
+    y = np.arange(blocksize*nby,dtype=d)
+    
+    x /= x.max()
+    y /= y.max()
+
 
     D = CudaDistance(euclidean, d, blocksize)
     CR = CudaRawCovariance(matern, d, blocksize, **matern_params(diff_degree = 1.3, amp = 1., scale = 1.))
@@ -106,12 +112,9 @@ def test_correspondence_covfun():
     Cspy = Cpy(y,y)
     Cs = C(y,y)
 
-    assert_almost_equal(Cs,Cspy)
-    assert_almost_equal(Cns,Cnspy)
+    assert_almost_equal(Cs,Cspy,4)
+    assert_almost_equal(Cns,Cnspy,4)
     
-    # print 'gpu: ',Cs[0,:]
-    # print 'python: ',Cspy[0,:]
-
 def test_timing():
     import time
 

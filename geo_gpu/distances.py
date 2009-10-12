@@ -56,16 +56,17 @@ __device__ {{dtype}} compute_element__({{dtype}} *x, {{dtype}} *y, int nxi, int 
 }
 __global__ void compute_matrix__({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, int ndx, int nxmax, int nymax)
 {
+    int nxi = blockIdx.x * blockDim.x + threadIdx.x;
+    int nyj = blockIdx.y * blockDim.y + threadIdx.y;
+
     {{ if symm }}
     if(blockIdx.x >= blockIdx.y){ 
+        {{ endif }}
         if ((nxi>nxmax)||(nyj>nymax)){
             {{if symm}}
             if (nxi == nyj) cuda_matrix[nyj*nx + nxi] = 0;
-            else {{endif}} cuda_matrix[nyj*nx + nxi] = inf;
+            else {{endif}} cuda_matrix[nyj*nx + nxi] = 1;
         }
-        {{ endif }}
-        int nxi = blockIdx.x * blockDim.x + threadIdx.x;
-        int nyj = blockIdx.y * blockDim.y + threadIdx.y;
         {{dtype}} d_xi_yj = compute_element__(x,y,nxi,nyj,ndx);
         __syncthreads;
         cuda_matrix[nyj*nx + nxi] = d_xi_yj;
@@ -125,7 +126,7 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}}
             d_gpu.shape=(nx_,ny_)
 
         #Execute cuda function
-        cuda_fct(d_gpu, x_gpu, y_gpu, nx_, ndx, block=(self.blocksize,self.blocksize,1), grid=(nbx,nby))
+        cuda_fct(d_gpu, x_gpu, y_gpu, nx_, ndx, np.uint32(nx), np.uint32(ny), block=(self.blocksize,self.blocksize,1), grid=(nbx,nby))
 
         #Free memory on gpu
         x_gpu.free()

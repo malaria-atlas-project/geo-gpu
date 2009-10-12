@@ -37,11 +37,13 @@ def substitute_dtypes(param_dtypes, params, dtype):
 
 def gpu_to_ndarray(a_gpu, dtype, shape):
     gpu_shape = a_gpu.shape
-    a_cpu = np.empty(shape,dtype=dtype,order='F')        
+    a_cpu = np.empty(shape,dtype=dtype,order='F')            
     if gpu_shape == shape:
         cuda.memcpy_dtoh(a_cpu,a_gpu)
     else:
-        raise NotImplementedError
+        a_cpu_ = np.empty(gpu_shape,dtype=dtype,order='F')        
+        cuda.memcpy_dtoh(a_cpu_,a_gpu)
+        a_cpu[:,:] = a_cpu_[:shape[0],:shape[1]]    
     a_gpu.free()
     return a_cpu
     
@@ -64,7 +66,9 @@ def ndarray_to_gpu(a_cpu, blocksize=None):
     if blocksize is None:
         cuda.memcpy_htod(a_gpu, a_cpu)
     else:
-        raise NotImplementedError
+        a_cpu_ = np.empty(a_gpu.shape,dtype=a_cpu.dtype,order='F')
+        a_cpu_[:a_cpu.shape[0],:a_cpu.shape[1]] = a_cpu[:,:]
+        cuda.memcpy_htod(a_gpu, a_cpu_)
 
     return a_gpu
     

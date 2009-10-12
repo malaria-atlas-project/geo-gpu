@@ -46,13 +46,19 @@ def disttest():
 
 def test_correspondence():
     nbx = 1
-    blocksize=2
+    blocksize=16
     nby = 2
+    
+    # nx = blocksize*nbx
+    # ny = blocksize*nby
+    
+    nx = 17
+    ny = 17
 
     d='float32'
     # d='float'
-    x = np.arange(blocksize*nbx,dtype=d)
-    y = np.arange(blocksize*nby,dtype=d)    
+    x = np.arange(nx,dtype=d)
+    y = np.arange(ny,dtype=d)    
     # x = np.arange(1,dtype=d)*.25
     # y = np.arange(7,dtype=d)*.25
 
@@ -67,9 +73,6 @@ def test_correspondence():
     
     Cspy = Cpy(y,y)
     Cs = C(y,y)
-    
-    print Cns-Cnspy
-    print Cs-Cspy
     
     assert_almost_equal(Cns,Cnspy)
     assert_almost_equal(Cs,Cspy)

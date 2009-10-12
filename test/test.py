@@ -52,8 +52,8 @@ def test_correspondence():
     # nx = blocksize*nbx
     # ny = blocksize*nby
     
-    nx = 33
-    ny = 33
+    nx = 30*blocksize
+    ny = 60*blocksize
 
     d='float32'
     # d='float'

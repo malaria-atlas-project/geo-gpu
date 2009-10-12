@@ -54,10 +54,15 @@ __device__ {{dtype}} compute_element__({{dtype}} *x, {{dtype}} *y, int nxi, int 
 {
 {{body}}
 }
-__global__ void compute_matrix__({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, int ndx)
+__global__ void compute_matrix__({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}} *y, int nx, int ndx, int nxmax, int nymax)
 {
     {{ if symm }}
     if(blockIdx.x >= blockIdx.y){ 
+        if ((nxi>nxmax)||(nyj>nymax)){
+            {{if symm}}
+            if (nxi == nyj) cuda_matrix[nyj*nx + nxi] = 0;
+            else {{endif}} cuda_matrix[nyj*nx + nxi] = inf;
+        }
         {{ endif }}
         int nxi = blockIdx.x * blockDim.x + threadIdx.x;
         int nyj = blockIdx.y * blockDim.y + threadIdx.y;

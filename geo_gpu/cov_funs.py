@@ -63,7 +63,7 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, int nx, int ny, int nxm
         if ((nxi>nxmax)||(nyj>nymax)){
             {{if symm}}
             if (nxi == nyj) cuda_matrix[nyj*nx + nxi] = 1;
-            else {{endif}} cuda_matrix[nyj*nx + nxi] = 1;
+            else {{endif}} cuda_matrix[nyj*nx + nxi] = 0;
         }
         compute_element__(cuda_matrix + nyj*nx + nxi);
         __syncthreads;

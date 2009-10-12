@@ -61,9 +61,10 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, int nx, int ny, int nxm
     if(blockIdx.x >= blockIdx.y){ 
         {{ endif }}
         if ((nxi>=nxmax)||(nyj>=nymax)){
+            cuda_matrix[nyj*nx + nxi] = 0;
             {{if symm}}
-            if (nxi == nyj) cuda_matrix[nyj*nx + nxi] = 1;
-            else {{endif}} cuda_matrix[nyj*nx + nxi] = 0;
+            if (nxi == nyj) {cuda_matrix[nyj*nx + nxi] = 1;}
+            {{endif}} 
         }
         else{
             compute_element__(cuda_matrix + nyj*nx + nxi);

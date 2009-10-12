@@ -42,7 +42,12 @@ def gpu_to_ndarray(a_gpu, dtype, shape):
         cuda.memcpy_dtoh(a_cpu,a_gpu)
     else:
         a_cpu_ = np.empty(gpu_shape,dtype=dtype,order='F')        
-        cuda.memcpy_dtoh(a_cpu_,a_gpu)
+        cuda.memcpy_dtoh(a_cpu_,a_gpu)        
+        # import pylab as pl; pl.imshow(a_cpu_,interpolation='nearest'); pl.savefig('a_cpu_.pdf')
+        # import os
+        # os.system('scp a_cpu_.pdf anand@sihpc03.zoo.ox.ac.uk:Desktop')
+        # from IPython.Debugger import Pdb
+        # Pdb(color_scheme='Linux').set_trace()   
         a_cpu[:,:] = a_cpu_[:shape[0],:shape[1]] 
     a_gpu.free()   
     return a_cpu

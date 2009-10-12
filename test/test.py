@@ -85,6 +85,27 @@ def test_correspondence():
 
     # S = geo_gpu.cholesky(Cs)
 
+def test_correspondence_cholesky():
+    import pylab
+    nbx = 5
+    blocksize=16
+    nby = 9
+
+    d='float32'
+    # d='float'
+    x = np.arange(blocksize*nbx+7,dtype=d)
+    x /= x.max()
+
+    D = CudaDistance(euclidean, d, blocksize)
+    CR = CudaRawCovariance(matern, d, blocksize, **matern_params(diff_degree = 1.3, amp = 1., scale = 1.))
+    C = CudaCovariance(D, CR)
+
+    S = C.cholesky(x)
+    C_ = C(x,x)
+    C__ = np.dot(S.T,S)
+
+    assert_almost_equal(C__,C_,4)
+
 def test_correspondence_covfun():
     import pylab
     nbx = 30
@@ -178,4 +199,5 @@ def test_timing():
     
 if __name__ == "__main__":
     # test_timing()
-    test_correspondence_covfun()
+    # test_correspondence_covfun()
+    test_correspondence_cholesky()

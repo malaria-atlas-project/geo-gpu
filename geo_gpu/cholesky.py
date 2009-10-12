@@ -31,15 +31,12 @@ def cholesky(C, blocksize=16):
     of the return value, and of the intermediate GPU data structures,
     will match that of C, so be sure C is of the dtype you want!
     """
-    S = C.copy('F')
     
     nx = C.shape[0]
     
-    S_gpu = cuda.mem_alloc(nx**2*S.dtype.itemsize)
-    cuda.memcpy_htod(S_gpu,S)
-    cholesky_gpu(S_gpu, nx, S.dtype, blocksize)
-    cuda.memcpy_dtoh(S, S_gpu)
-    S_gpu.free()
+    S_gpu = ndarray_to_gpu(C, blocksize)
+    cholesky_gpu(S_gpu, S_gpu.shape[0], C.dtype, blocksize)
+    S = gpu_to_ndarray(S_gpu, C_dtype, (nx,nx))
     
     warnings.warn('Zeroing lower triangle of S straight from Python, will be slow as molasses.')
     for i in xrange(nx):
@@ -204,7 +201,6 @@ cholesky_sources = {}
 
 # Cholesky decomposition of matrixA which is already on gpu.
 def cholesky_gpu(matrixA_gpu, matrixA_size, dtype, blocksize):
-
     if dtype_names[dtype] != 'float':
         raise NotImplementedError, 'Double precision not working yet.'
 
@@ -219,10 +215,6 @@ def cholesky_gpu(matrixA_gpu, matrixA_size, dtype, blocksize):
     matrixA_size = numpy.uint32(matrixA_size)
     matrixBlocks = numpy.uint32(matrixA_size/blocksize)
     matrixRest = matrixA_size%blocksize
-    
-    # if ((matrixRest != 0) and (nx != ny)):
-    #    # Matrix is not symmetric or has the wrong dimension -> exit
-    #    return None
 
     if ((matrixA_gpu == None) or (matrixA_size == 0)):
        return None

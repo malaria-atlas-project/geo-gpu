@@ -21,6 +21,7 @@ from common import *
 import pycuda as cuda
 import pymc
 import numpy as np
+import warnings
 
 
 # TODO: Observations!
@@ -65,23 +66,30 @@ class CudaCovariance(pymc.gp.Covariance):
                                     self.ndim.__str__()+"."
         
         c_gpu = self.distance.gpu_call(x,y,symm)
-        self.covariance.gpu_call(c_gpu,x.shape[0],y.shape[0],symm=False)
+        self.covariance.gpu_call(c_gpu,x.shape[0],y.shape[0],symm=symm)
         return c_gpu
         
     def diag_gpu_call(self, x):
         raise NotImplemented
     
     def gpu_cholesky(self, x, blocksize, nugget=None):
-        u_gpu = self.gpu_call(x, x)
+        u_gpu = self.gpu_call(x, x, True)
         if nugget is not None:
             raise NotImplemented
-        cholesky_gpu(u_gpu, x.shape[0], self.dtype, blocksize)
+        cholesky_gpu(u_gpu, u_gpu.shape[0], self.dtype, blocksize)
         return u_gpu
         
     def cholesky(self, x, observed=True, regularize=True, nugget=None, blocksize=16):
         x=pymc.gp.regularize_array(x)
         u_gpu = self.gpu_cholesky(x,blocksize,nugget)
-        return gpu_to_ndarray(u_gpu, self.dtype, (x.shape[0],)*2)
+        S = gpu_to_ndarray(u_gpu, self.dtype, (x.shape[0],)*2)
+
+        warnings.warn('Zeroing lower triangle of S straight from Python, will be slow as molasses.')
+        for i in xrange(x.shape[0]):
+            for j in xrange(i):
+                S[i,j] = 0
+
+        return S
         
     def continue_cholesky(self, x, x_old, u_gpu_old, observed=True, nugget=None):
         raise NotImplemented
@@ -94,7 +102,7 @@ class CudaCovariance(pymc.gp.Covariance):
         # Diagonal case
         if y is None:
             v_gpu = self.diag_gpu_call(x)
-            return gpu_to_ndarray(v_gpu, self.dtype, (x.shape[0]))
+            return gpu_to_ndarray(v_gpu, self.dtype, (x.shape[0],))
 
         # Full case
         else:                

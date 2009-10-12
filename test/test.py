@@ -93,8 +93,8 @@ def test_correspondence_covfun():
 
     d='float32'
     # d='float'
-    x = np.arange(blocksize*nbx+7,dtype=d)
-    y = np.arange(blocksize*nby-3,dtype=d)
+    x = np.arange(blocksize*nbx+1,dtype=d)
+    y = np.arange(blocksize*nby+1,dtype=d)
     
     x /= x.max()
     y /= y.max()
@@ -115,9 +115,6 @@ def test_correspondence_covfun():
     assert_almost_equal(Cs,Cspy,4)
     assert_almost_equal(Cns,Cnspy,4)
     
-    # print 'gpu: ',Cs[0,:]
-    # print 'python: ',Cspy[0,:]
-
 def test_timing():
     import time
 

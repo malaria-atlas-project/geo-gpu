@@ -43,8 +43,8 @@ def gpu_to_ndarray(a_gpu, dtype, shape):
     else:
         a_cpu_ = np.empty(gpu_shape,dtype=dtype,order='F')        
         cuda.memcpy_dtoh(a_cpu_,a_gpu)
-        a_cpu[:,:] = a_cpu_[:shape[0],:shape[1]]    
-    a_gpu.free()
+        a_cpu[:,:] = a_cpu_[:shape[0],:shape[1]] 
+    a_gpu.free()   
     return a_cpu
     
 def ndarray_to_gpu(a_cpu, blocksize=None):

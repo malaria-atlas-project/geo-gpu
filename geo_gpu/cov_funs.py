@@ -60,16 +60,17 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, int nx, int ny, int nxm
     {{ if symm }}
     if(blockIdx.x >= blockIdx.y){ 
         {{ endif }}
-        if ((nxi>nxmax)||(nyj>nymax)){
+        if ((nxi>=nxmax)||(nyj>=nymax)){
             {{if symm}}
             if (nxi == nyj) cuda_matrix[nyj*nx + nxi] = 1;
             else {{endif}} cuda_matrix[nyj*nx + nxi] = 0;
         }
-        compute_element__(cuda_matrix + nyj*nx + nxi);
-        __syncthreads;
-        {{if symm }}
-        cuda_matrix[nxi*nx + nyj] = cuda_matrix[nyj*nx + nxi];
-    }   {{ endif }}
+        else{
+            compute_element__(cuda_matrix + nyj*nx + nxi);
+            __syncthreads;
+            {{if symm }}
+            cuda_matrix[nxi*nx + nyj] = cuda_matrix[nyj*nx + nxi];
+        }   {{ endif }} }
 }"""
         
     def __call__(self,d,symm=False):
@@ -89,21 +90,20 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, int nx, int ny, int nxm
 
         # Compile module if necessary
         mod = self.modules[symm]
-
+        
         nbx = int(np.ceil(nx/float(self.blocksize)))
         nby = int(np.ceil(ny/float(self.blocksize)))
-
+        
         #Load cuda function
         cuda_fct = mod.get_function("compute_matrix__")
-
+        
         #Convert input parameters
         nx_ = numpy.uint32(nbx*self.blocksize)
         ny_ = numpy.uint32(nby*self.blocksize)
-
+        
         #Execute cuda function
         cuda_fct(c_gpu, nx_, ny_, numpy.uint32(nx), numpy.uint32(ny), block=(self.blocksize,self.blocksize,1), grid=(nbx,nby))
 
-        #return matrix_gpu
         return c_gpu
 
 exponential = {'preamble': "", 'params':{'amp':'{{dtype}}','scale':'{{dtype}}'},

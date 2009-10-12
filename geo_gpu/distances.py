@@ -62,17 +62,20 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}}
     {{ if symm }}
     if(blockIdx.x >= blockIdx.y){ 
         {{ endif }}
-        if ((nxi>nxmax)||(nyj>nymax)){
+        if ((nxi>=nxmax) || (nyj>=nymax)){
             {{if symm}}
             if (nxi == nyj) cuda_matrix[nyj*nx + nxi] = 0;
             else {{endif}} cuda_matrix[nyj*nx + nxi] = 1;
         }
-        {{dtype}} d_xi_yj = compute_element__(x,y,nxi,nyj,ndx);
-        __syncthreads;
-        cuda_matrix[nyj*nx + nxi] = d_xi_yj;
-        {{ if symm }}
-        cuda_matrix[nxi*nx + nyj] = d_xi_yj;
-    }   {{ endif }}
+        else
+        {
+            {{dtype}} d_xi_yj = compute_element__(x,y,nxi,nyj,ndx);
+            __syncthreads;
+            cuda_matrix[nyj*nx + nxi] = d_xi_yj;
+            {{ if symm }}
+            cuda_matrix[nxi*nx + nyj] = d_xi_yj;
+        }   {{ endif }}
+    }
 }
     """
         
@@ -113,9 +116,9 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, {{dtype}} *x, {{dtype}}
         #Load cuda function
         cuda_fct = mod.get_function("compute_matrix__")
 
-        x_ = np.empty((nx_,ndx),dtype=self.dtype)
+        x_ = np.zeros((nx_,ndx),dtype=self.dtype)
         x_[:nx,:]=x
-        y_ = np.empty((ny_,ndy),dtype=self.dtype)
+        y_ = np.zeros((ny_,ndy),dtype=self.dtype)
         y_[:ny,:]=y
 
         #Allocate arrays on device

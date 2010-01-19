@@ -68,7 +68,7 @@ __global__ void compute_matrix__({{dtype}} *cuda_matrix, int nx, int ny, int nxm
         }
         else{
             compute_element__(cuda_matrix + nyj*nx + nxi);
-            __syncthreads;
+            // __syncthreads;
             {{if symm }}
             cuda_matrix[nxi*nx + nyj] = cuda_matrix[nyj*nx + nxi];
         }   {{ endif }} }
@@ -335,9 +335,6 @@ if (ex <= 1.) {
 	bk2 = 0.;
 	f1 = f0;
 	f2 = p0;
-    double f00 = f0;
-    double p00 = p0;
-    double q00 = q0;
             loopCount = 0;
             int loop = 1;
     do {
@@ -470,8 +467,7 @@ j = 1 - k;
 if (j >= 0)
     bk[j] = bk2;
 if (iend == 1)
-        bk[1] = bk2;
-    return;
+    {bk[1] = bk2; return;}
 m = imin2((long) (wminf - nu),iend);
 for (i = 2; i <= m; ++i) {
     t1 = bk1;
@@ -532,11 +528,8 @@ __device__ void rkbesl({{dtype}} x, {{dtype}} alpha, int nb, int ize, {{dtype}} 
 }
 """,
 'body' : """
-    int ncalc={{fl}}+1;
-    {{dtype}} alpha = {{rem}};
     int nb = {{fl}}+1;
-    int ize = 1;
-    {{dtype}} d_C_xi_yj = 1.0;
+    {{dtype}} d_C_xi_yj=1.0;
     
     
         {{dtype}} BK[{{fl}}+1];

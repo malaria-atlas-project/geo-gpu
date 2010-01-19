@@ -97,9 +97,9 @@ def test_correspondence_cholesky():
     x /= x.max()
 
     D = CudaDistance(euclidean, d, blocksize)
-    CR = CudaRawCovariance(matern, d, blocksize, **matern_params(diff_degree = 1.3, amp = 1., scale = 1.))
+    CR = CudaRawCovariance(matern, d, blocksize, **matern_params(diff_degree = 1.3, amp = 1.1, scale = 1.))
     C = CudaCovariance(D, CR)
-
+    
     S = C.cholesky(x)
     C_ = C(x,x)
     C__ = np.dot(S.T,S)

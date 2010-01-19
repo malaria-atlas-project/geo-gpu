@@ -24,6 +24,9 @@ import warnings
 
 __all__ = ['cholesky','cholesky_gpu']
 
+# MAGMA options: , options=['-L /home/system/software/skynet/libs/magma-0.1', '-lmagma']
+# CUBLAS options: 
+
 # Cholesky decomposition of NumPy matrix
 def cholesky(C, blocksize=16):
     """
@@ -44,6 +47,8 @@ def cholesky(C, blocksize=16):
             S[i,j] = 0
     
     return S
+
+
 
 cholesky_template = """
 #define BLOCKSIZE {{blocksize}}

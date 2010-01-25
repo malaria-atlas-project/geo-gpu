@@ -1,0 +1,39 @@
+#//////////////////////////////////////////////////////////////////////////////
+#   -- MAGMA (version 0.2) --
+#      Univ. of Tennessee, Knoxville
+#      Univ. of California, Berkeley
+#      Univ. of	Colorado, Denver
+#      November 2009
+#//////////////////////////////////////////////////////////////////////////////
+#
+# Afterward, to build shared objects: 
+# cd lib
+# mkdir objectfiles
+# cd objectfiles
+# cp ../*.a .
+# ar x libmagma.a
+# ar x libmagmablas.a
+# gcc -shared -o libmagma.so *.o *.cu_o -lmkl_em64t -lguide -lpthread -lcublas -lcuda -lm -L/opt/cuda/2.3/toolkit/lib64 -L/opt/intel/mkl/10.0.1.015/lib
+
+	CC        = gcc -shared
+	NVCC      = nvcc
+	FORT      = gfortran
+
+	ARCH      = ar
+	ARCHFLAGS = cr
+	RANLIB    = ranlib
+
+	OPTS      = -O3 -DADD_ -fPIC
+	NVOPTS    = --shared --compiler-options '-fPIC'  -arch sm_13 \
+                    -DUNIX -O3
+	LDOPTS    = -fPIC
+
+	LIB       = -lmkl_em64t -lguide -lpthread -lcublas -lm 
+
+	CUDADIR   = /opt/cuda/2.3/toolkit
+
+	LIBDIR    = -L/opt/intel/mkl/10.1.015 -L$(CUDADIR)/lib64
+	INC       = -I../include -I$(CUDADIR)/include
+	
+	LIBMAGMA     = ../lib/libmagma.a
+	LIBMAGMABLAS = ../lib/libmagmablas.a

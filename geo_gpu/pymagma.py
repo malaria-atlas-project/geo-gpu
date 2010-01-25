@@ -2,6 +2,8 @@
 from __future__ import division, with_statement
 import ctypes, math, numpy, platform, time
 
+magma_path = '/home/malaria-atlas-project/sources/magma_0.2s/lib/objectfiles/libmagma.so'
+
 # arrived at via trial-and-error - might need tweaking for your GPU
 MEM_ALIGN_SIZE = 64
 class CUBLASMatrix(object):
@@ -126,8 +128,9 @@ class CUBLASVector(object):
 # -----------------------------------------------------------------------------
 #  MAGMA 
 # -----------------------------------------------------------------------------
-if platform.system()=='Linux':     libmagma = ctypes.cdll.LoadLibrary('/tmp/malaria/magma_0.2/lib/o/libmagma.so.1.0.0')
-else:                              libmagma = ctypes.cdll.LoadLibrary('/tmp/malaria/magma_0.2/lib/o/libmagma.so.1.0.0')
+# libmagmablas = ctypes.cdll.LoadLibrary(magma_path.replace('libmagma','libmagmablas'))
+if platform.system()=='Linux':     libmagma = ctypes.cdll.LoadLibrary(magma_path)
+else:                              libmagma = ctypes.cdll.LoadLibrary(magma_path)
 
 # magmaSpotrf_gpu
 _magmaSpotrf_gpu = libmagma.magma_spotrf_gpu
